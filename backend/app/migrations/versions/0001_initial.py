@@ -4,14 +4,28 @@ Revision ID: 0001_initial
 Revises:
 Create Date: 2026-09-20
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "0001_initial"
 down_revision = None
 branch_labels = None
 depends_on = None
+
+
+def _timestamps() -> tuple:
+    """The created_at/updated_at columns shared by every table."""
+    return (
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True),
+            server_default=sa.text("now()"), nullable=False,
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True),
+            server_default=sa.text("now()"), nullable=False,
+        ),
+    )
 
 
 def upgrade() -> None:
@@ -31,8 +45,7 @@ def upgrade() -> None:
         sa.Column("provider", auth_provider, nullable=False, server_default="local"),
         sa.Column("external_id", sa.String(255), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        *_timestamps(),
         sa.UniqueConstraint("provider", "external_id", name="uq_provider_external_id"),
     )
     op.create_index("ix_users_email", "users", ["email"], unique=True)
@@ -45,8 +58,7 @@ def upgrade() -> None:
         sa.Column("description", sa.String(500), nullable=False, server_default=""),
         sa.Column("icon", sa.String(60), nullable=False, server_default="folder"),
         sa.Column("sort_order", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        *_timestamps(),
         sa.UniqueConstraint("name", name="uq_categories_name"),
     )
     op.create_index("ix_categories_slug", "categories", ["slug"], unique=True)
@@ -64,8 +76,7 @@ def upgrade() -> None:
         sa.Column("fields", postgresql.JSONB(), nullable=False, server_default="[]"),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("created_by_id", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        *_timestamps(),
         sa.ForeignKeyConstraint(["category_id"], ["categories.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["created_by_id"], ["users.id"], ondelete="SET NULL"),
     )
@@ -88,8 +99,7 @@ def upgrade() -> None:
         sa.Column("sync_attempts", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("last_error", sa.Text(), nullable=True),
         sa.Column("last_attempt_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        *_timestamps(),
         sa.ForeignKeyConstraint(["portal_id"], ["portals.id"], ondelete="RESTRICT"),
         sa.ForeignKeyConstraint(["submitted_by_id"], ["users.id"], ondelete="RESTRICT"),
     )
