@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import FieldRenderer from "../components/FieldRenderer";
@@ -31,7 +31,7 @@ export default function PortalForm() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!portal) return;
     setError(null);

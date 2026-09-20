@@ -37,6 +37,8 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Alembic migrations are largely generated; don't lint their formatting.
+extend-exclude = ["app/migrations"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

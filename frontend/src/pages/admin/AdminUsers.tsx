@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
 import type { User, UserRole } from "../../types";
@@ -15,7 +15,7 @@ export default function AdminUsers() {
   const load = () => api.get<User[]>("/api/users").then(setUsers);
   useEffect(() => { void load(); }, []);
 
-  const create = async (e: React.FormEvent) => {
+  const create = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     try {

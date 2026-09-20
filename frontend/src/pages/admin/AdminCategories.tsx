@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
 import type { Category } from "../../types";
@@ -13,7 +13,7 @@ export default function AdminCategories() {
   const load = () => api.get<Category[]>("/api/categories").then(setCategories);
   useEffect(() => { void load(); }, []);
 
-  const create = async (e: React.FormEvent) => {
+  const create = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     try {

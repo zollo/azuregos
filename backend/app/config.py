@@ -31,7 +31,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
 
     # Bootstrap admin
-    bootstrap_admin_email: str = Field(default="admin@azuregos.local", alias="BOOTSTRAP_ADMIN_EMAIL")
+    bootstrap_admin_email: str = Field(
+        default="admin@azuregos.local", alias="BOOTSTRAP_ADMIN_EMAIL"
+    )
     bootstrap_admin_password: str = Field(default="admin", alias="BOOTSTRAP_ADMIN_PASSWORD")
 
     # OIDC

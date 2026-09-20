@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
 import type { Category, FieldDefinition, FieldType, Portal } from "../../types";
@@ -69,7 +69,7 @@ export default function AdminPortalEditor() {
   const updateField = (idx: number, patch: Partial<FieldDefinition>) =>
     setFields((prev) => prev.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
 
-  const save = async (e: React.FormEvent) => {
+  const save = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
 
