@@ -17,9 +17,6 @@ spec:
       labels:
         app: worker
     spec:
-      # Pull secret for the private GHCR images (see README → Kubernetes).
-      imagePullSecrets:
-        - name: ghcr-pull
       containers:
         - name: worker
           image: ghcr.io/zollo/azuregos-backend:latest

@@ -131,27 +131,28 @@ ingress that routes `/api` to the backend and everything else to the SPA. The
 image references point at `ghcr.io/zollo/azuregos-{backend,frontend}`, matching
 what CI publishes.
 
-### 1. Image pull secret (GHCR)
+### 1. Make the GHCR packages public (one-time)
 
-The images are published to GHCR, which is **private by default**, so the
-cluster needs credentials to pull them. Each deployment references a pull secret
-named `ghcr-pull`. Create it once in the `azuregos` namespace using a GitHub
-Personal Access Token (classic) with the `read:packages` scope:
+The images are published to GHCR. GHCR packages are **private by default**, so
+after CI first publishes them, set each package's visibility to **Public** so
+the cluster can pull them without credentials:
+
+> github.com/zollo → **Packages** → `azuregos-backend` → **Package settings** →
+> **Danger Zone → Change visibility → Public**. Repeat for `azuregos-frontend`.
+
+Because the packages are public, the deployments need no `imagePullSecrets`. If
+you'd rather keep them private, create a pull secret instead:
 
 ```bash
-kubectl create namespace azuregos    # or: kubectl apply -f deploy/k8s/namespace.yaml
-
 kubectl create secret docker-registry ghcr-pull \
   --namespace azuregos \
   --docker-server=ghcr.io \
   --docker-username=zollo \
-  --docker-password='<GHCR_PAT_with_read:packages>' \
-  --docker-email='you@example.com'
+  --docker-password='<GHCR_PAT_with_read:packages>'
 ```
 
-> Alternatively, make the two GHCR packages public (repo → Packages → package →
-> Package settings → Change visibility) and the pull secret becomes optional —
-> you can then remove the `imagePullSecrets` blocks from the deployments.
+...and add `imagePullSecrets: [{ name: ghcr-pull }]` to each deployment's pod
+spec.
 
 ### 2. Deploy
 
