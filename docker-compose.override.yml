@@ -1,0 +1,34 @@
+# Development overrides — automatically merged by docker-compose.
+# Mounts source for hot-reload and runs dev servers instead of prod builds.
+
+services:
+  backend:
+    build:
+      context: ./backend
+      target: dev
+    volumes:
+      - ./backend:/app
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  worker:
+    build:
+      context: ./backend
+      target: dev
+    volumes:
+      - ./backend:/app
+    command: >
+      watchmedo auto-restart --directory=/app/app --pattern='*.py' --recursive --
+      celery -A app.workers.celery_app.celery_app worker --beat --loglevel=info
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "80"]
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000

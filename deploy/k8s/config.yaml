@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: azuregos-config
+  namespace: azuregos
+data:
+  AZUREGOS_ENV: "production"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "azuregos"
+  REDIS_URL: "redis://redis:6379/0"
+  CORS_ORIGINS: "https://azuregos.example.com"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+  ADO_ORG_URL: "https://dev.azure.com/your-org"
+  ADO_DEFAULT_PROJECT: "YourProject"
+  ADO_RETRY_INTERVAL_SECONDS: "60"
+  ADO_MAX_RETRY_ATTEMPTS: "20"
+  OIDC_ENABLED: "false"
+  SAML_ENABLED: "false"
+---
+# NOTE: This Secret holds placeholder values. In real deployments create it
+# out-of-band (e.g. sealed-secrets / external-secrets) and do NOT commit
+# real credentials. Values must be base64-encoded when using `data:`; here we
+# use `stringData:` for readability.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azuregos-secrets
+  namespace: azuregos
+type: Opaque
+stringData:
+  SECRET_KEY: "change-me-to-a-long-random-string"
+  POSTGRES_USER: "azuregos"
+  POSTGRES_PASSWORD: "change-me"
+  BOOTSTRAP_ADMIN_EMAIL: "admin@azuregos.local"
+  BOOTSTRAP_ADMIN_PASSWORD: "change-me"
+  ADO_PAT: "your-personal-access-token"
+  OIDC_CLIENT_ID: ""
+  OIDC_CLIENT_SECRET: ""
+  OIDC_DISCOVERY_URL: ""
+  OIDC_REDIRECT_URI: ""
+  SAML_METADATA_URL: ""
+  SAML_SP_ENTITY_ID: "azuregos"
+  SAML_ACS_URL: ""

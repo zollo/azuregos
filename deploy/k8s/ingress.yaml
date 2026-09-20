@@ -1,0 +1,33 @@
+# Routes the public host: /api -> backend, everything else -> frontend SPA.
+# Assumes an ingress-nginx controller. Adjust host/TLS for your environment.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: azuregos
+  namespace: azuregos
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - azuregos.example.com
+      secretName: azuregos-tls
+  rules:
+    - host: azuregos.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

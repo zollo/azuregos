@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: azuregos
+  labels:
+    app: worker
+spec:
+  # Keep a single replica so the embedded beat scheduler doesn't double-fire.
+  # Scale the worker pool with --concurrency instead, or split beat out.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/OWNER/azuregos-backend:latest
+          command:
+            - celery
+            - -A
+            - app.workers.celery_app.celery_app
+            - worker
+            - --beat
+            - --loglevel=info
+          envFrom:
+            - configMapRef:
+                name: azuregos-config
+            - secretRef:
+                name: azuregos-secrets
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
