@@ -15,6 +15,9 @@ spec:
       labels:
         app: frontend
     spec:
+      # Pull secret for the private GHCR images (see README → Kubernetes).
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: frontend
           # Build this image with --build-arg VITE_API_BASE_URL=<public API URL>

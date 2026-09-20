@@ -127,14 +127,40 @@ cd frontend && npm test
 
 Manifests live in `deploy/k8s` (kustomize). They deploy Postgres, Redis, the
 backend (with a migration init-container), the worker, the frontend, and an
-ingress that routes `/api` to the backend and everything else to the SPA.
+ingress that routes `/api` to the backend and everything else to the SPA. The
+image references point at `ghcr.io/zollo/azuregos-{backend,frontend}`, matching
+what CI publishes.
+
+### 1. Image pull secret (GHCR)
+
+The images are published to GHCR, which is **private by default**, so the
+cluster needs credentials to pull them. Each deployment references a pull secret
+named `ghcr-pull`. Create it once in the `azuregos` namespace using a GitHub
+Personal Access Token (classic) with the `read:packages` scope:
 
 ```bash
-# Point at your images and apply
+kubectl create namespace azuregos    # or: kubectl apply -f deploy/k8s/namespace.yaml
+
+kubectl create secret docker-registry ghcr-pull \
+  --namespace azuregos \
+  --docker-server=ghcr.io \
+  --docker-username=zollo \
+  --docker-password='<GHCR_PAT_with_read:packages>' \
+  --docker-email='you@example.com'
+```
+
+> Alternatively, make the two GHCR packages public (repo → Packages → package →
+> Package settings → Change visibility) and the pull secret becomes optional —
+> you can then remove the `imagePullSecrets` blocks from the deployments.
+
+### 2. Deploy
+
+```bash
+# Optionally pin image tags for reproducible rollouts, then apply
 cd deploy/k8s
 kustomize edit set image \
-  ghcr.io/OWNER/azuregos-backend=ghcr.io/<you>/azuregos-backend:<tag> \
-  ghcr.io/OWNER/azuregos-frontend=ghcr.io/<you>/azuregos-frontend:<tag>
+  ghcr.io/zollo/azuregos-backend=ghcr.io/zollo/azuregos-backend:<tag> \
+  ghcr.io/zollo/azuregos-frontend=ghcr.io/zollo/azuregos-frontend:<tag>
 kubectl apply -k .
 ```
 

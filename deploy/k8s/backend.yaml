@@ -15,6 +15,9 @@ spec:
       labels:
         app: backend
     spec:
+      # Pull secret for the private GHCR images (see README → Kubernetes).
+      imagePullSecrets:
+        - name: ghcr-pull
       # Run DB migrations before the API starts.
       initContainers:
         - name: migrate
