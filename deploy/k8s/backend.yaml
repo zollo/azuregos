@@ -18,7 +18,7 @@ spec:
       # Run DB migrations before the API starts.
       initContainers:
         - name: migrate
-          image: ghcr.io/OWNER/azuregos-backend:latest
+          image: ghcr.io/zollo/azuregos-backend:latest
           command: ["alembic", "upgrade", "head"]
           envFrom:
             - configMapRef:
@@ -27,7 +27,7 @@ spec:
                 name: azuregos-secrets
       containers:
         - name: backend
-          image: ghcr.io/OWNER/azuregos-backend:latest
+          image: ghcr.io/zollo/azuregos-backend:latest
           ports:
             - containerPort: 8000
           envFrom:

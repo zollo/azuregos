@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: ghcr.io/OWNER/azuregos-backend:latest
+          image: ghcr.io/zollo/azuregos-backend:latest
           command:
             - celery
             - -A

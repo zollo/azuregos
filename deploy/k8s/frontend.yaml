@@ -18,7 +18,7 @@ spec:
       containers:
         - name: frontend
           # Build this image with --build-arg VITE_API_BASE_URL=<public API URL>
-          image: ghcr.io/OWNER/azuregos-frontend:latest
+          image: ghcr.io/zollo/azuregos-frontend:latest
           ports:
             - containerPort: 80
           readinessProbe:
