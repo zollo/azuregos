@@ -56,6 +56,9 @@ known-first-party = ["app"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "functional: tests that hit a live Azure DevOps instance (need ADO_PAT; auto-skipped otherwise)",
+]
 
 [tool.setuptools.packages.find]
 include = ["app*"]

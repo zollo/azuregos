@@ -39,8 +39,12 @@ makemigration: ## Autogenerate a migration: make makemigration m="message"
 	$(COMPOSE) exec backend alembic revision --autogenerate -m "$(m)"
 
 .PHONY: backend-test
-backend-test: ## Run backend tests
-	$(COMPOSE) exec backend pytest -q
+backend-test: ## Run backend unit tests
+	$(COMPOSE) exec backend pytest -q -m "not functional"
+
+.PHONY: functional-test
+functional-test: ## Run live Azure DevOps functional tests (needs backend/.env.test)
+	cd backend && pytest -q -m functional
 
 .PHONY: backend-lint
 backend-lint: ## Lint + format-check the backend

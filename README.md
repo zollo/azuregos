@@ -116,12 +116,29 @@ npm run dev        # http://localhost:5173
 ## Testing
 
 ```bash
-make backend-test     # pytest
+make backend-test     # pytest (unit only)
 make frontend-test    # vitest
 # or directly:
-cd backend && pytest -q
+cd backend && pytest -q -m "not functional"
 cd frontend && npm test
 ```
+
+### Functional tests against a live Azure DevOps instance
+
+`backend/tests/functional/` exercises the real ADO REST API through `ADOClient`
+and the Azuregos tag/description conventions (create → fetch → find-by-tag,
+mapped fields, error handling). They **require a PAT** and are **skipped**
+automatically when one isn't configured, so they're safe to leave in CI.
+
+```bash
+cp backend/.env.test.example backend/.env.test   # git-ignored
+# edit backend/.env.test: set ADO_ORG_URL and ADO_PAT (use a scoped, disposable token)
+make functional-test           # or: cd backend && pytest -q -m functional
+```
+
+Every work item the suite creates is deleted in teardown. Use a **dedicated,
+short-lived PAT** (Work Items: Read & Write) and revoke it afterward — never
+commit it.
 
 ## Deploying to Kubernetes
 

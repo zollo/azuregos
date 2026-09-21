@@ -152,6 +152,43 @@ class ADOClient:
         self._raise_for_status(resp)
         return [item["id"] for item in resp.json().get("workItems", [])]
 
+    async def list_projects(self) -> list[dict[str, Any]]:
+        """List the org's projects (also handy for admin project pickers)."""
+        url = f"{self.org_url}/_apis/projects?api-version={API_VERSION}"
+        try:
+            async with self._client() as client:
+                resp = await client.get(url)
+        except httpx.RequestError as exc:
+            raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
+        self._raise_for_status(resp)
+        return resp.json().get("value", [])
+
+    async def list_work_item_types(self, project: str) -> list[dict[str, Any]]:
+        """List a project's work-item types (for portal configuration)."""
+        project = project or self.default_project
+        url = f"{self.org_url}/{project}/_apis/wit/workitemtypes?api-version={API_VERSION}"
+        try:
+            async with self._client() as client:
+                resp = await client.get(url)
+        except httpx.RequestError as exc:
+            raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
+        self._raise_for_status(resp)
+        return resp.json().get("value", [])
+
+    async def delete_work_item(self, work_item_id: int, *, destroy: bool = False) -> None:
+        """Delete a work item. By default it goes to the recycle bin; ``destroy``
+        permanently removes it. Used to clean up after functional tests."""
+        url = (
+            f"{self.org_url}/_apis/wit/workitems/{work_item_id}"
+            f"?api-version={API_VERSION}&destroy={str(destroy).lower()}"
+        )
+        try:
+            async with self._client() as client:
+                resp = await client.delete(url)
+        except httpx.RequestError as exc:
+            raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
+        self._raise_for_status(resp)
+
     @staticmethod
     def web_url(work_item: dict[str, Any]) -> str | None:
         links = work_item.get("_links", {})
