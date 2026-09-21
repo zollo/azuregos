@@ -116,3 +116,26 @@ export interface AuthProviders {
   oidc: boolean;
   saml: boolean;
 }
+
+export interface AdoProject {
+  id: string;
+  name: string;
+}
+
+export interface AdoProjectsResponse {
+  configured: boolean;
+  default_project?: string | null;
+  projects: AdoProject[];
+  error: string | null;
+}
+
+export interface AdoWorkItemType {
+  name: string;
+  reference_name: string;
+}
+
+export interface AdoWorkItemTypesResponse {
+  configured: boolean;
+  work_item_types: AdoWorkItemType[];
+  error: string | null;
+}

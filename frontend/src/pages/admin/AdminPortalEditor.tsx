@@ -1,7 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
-import type { Category, FieldDefinition, FieldType, Portal } from "../../types";
+import type {
+  AdoProjectsResponse,
+  AdoWorkItemType,
+  AdoWorkItemTypesResponse,
+  Category,
+  FieldDefinition,
+  FieldType,
+  Portal,
+} from "../../types";
 
 const FIELD_TYPES: FieldType[] = [
   "text",
@@ -45,9 +53,25 @@ export default function AdminPortalEditor() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(editing);
 
+  // Azure DevOps metadata for the project / work-item-type pickers.
+  const [ado, setAdo] = useState<AdoProjectsResponse | null>(null);
+  const [workItemTypes, setWorkItemTypes] = useState<AdoWorkItemType[]>([]);
+
   useEffect(() => {
     api.get<Category[]>("/api/categories").then(setCategories).catch(() => {});
+    api.get<AdoProjectsResponse>("/api/ado/projects").then(setAdo).catch(() => {});
   }, []);
+
+  // (Re)load the work-item types whenever the selected project changes.
+  // An empty project means "use the server default".
+  useEffect(() => {
+    if (ado && !ado.configured) return;
+    const qs = adoProject ? `?project=${encodeURIComponent(adoProject)}` : "";
+    api
+      .get<AdoWorkItemTypesResponse>(`/api/ado/work-item-types${qs}`)
+      .then((r) => setWorkItemTypes(r.work_item_types))
+      .catch(() => setWorkItemTypes([]));
+  }, [adoProject, ado]);
 
   useEffect(() => {
     if (!editing) return;
@@ -152,21 +176,64 @@ export default function AdminPortalEditor() {
           <div className="row" style={{ gap: 16 }}>
             <div className="field" style={{ flex: 1 }}>
               <label>ADO Project</label>
-              <input
-                value={adoProject}
-                onChange={(e) => setAdoProject(e.target.value)}
-                placeholder="Leave blank to use the default project"
-              />
+              {ado?.configured ? (
+                <select value={adoProject} onChange={(e) => setAdoProject(e.target.value)}>
+                  <option value="">
+                    Server default{ado.default_project ? ` (${ado.default_project})` : ""}
+                  </option>
+                  {/* Preserve a previously-saved value even if it's not in the list */}
+                  {adoProject &&
+                    !ado.projects.some((p) => p.name === adoProject) && (
+                      <option value={adoProject}>{adoProject} (not found)</option>
+                    )}
+                  {ado.projects.map((p) => (
+                    <option key={p.id} value={p.name}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={adoProject}
+                  onChange={(e) => setAdoProject(e.target.value)}
+                  placeholder="Leave blank to use the default project"
+                />
+              )}
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label>Work Item Type</label>
-              <input
-                value={workItemType}
-                onChange={(e) => setWorkItemType(e.target.value)}
-                placeholder="Issue, Bug, Task…"
-              />
+              {ado?.configured && workItemTypes.length > 0 ? (
+                <select value={workItemType} onChange={(e) => setWorkItemType(e.target.value)}>
+                  {workItemType &&
+                    !workItemTypes.some((t) => t.name === workItemType) && (
+                      <option value={workItemType}>{workItemType} (not found)</option>
+                    )}
+                  {workItemTypes.map((t) => (
+                    <option key={t.reference_name || t.name} value={t.name}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={workItemType}
+                  onChange={(e) => setWorkItemType(e.target.value)}
+                  placeholder="Issue, Bug, Task…"
+                />
+              )}
             </div>
           </div>
+          {ado && !ado.configured && (
+            <p className="help">
+              Connect Azure DevOps (set ADO_ORG_URL / ADO_PAT) to pick the project and
+              work-item type from a list.
+            </p>
+          )}
+          {ado?.error && (
+            <p className="help" style={{ color: "var(--danger)" }}>
+              Couldn&apos;t load Azure DevOps metadata: {ado.error}
+            </p>
+          )}
         </div>
 
         <div className="card" style={{ marginTop: 20 }}>
