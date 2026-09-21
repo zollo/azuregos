@@ -199,7 +199,7 @@ async def update_portal(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(get_current_admin)],
 )
-async def delete_portal(portal_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
+async def delete_portal(portal_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     portal = await db.get(Portal, portal_id)
     if portal is None:
         raise HTTPException(status_code=404, detail="Portal not found")

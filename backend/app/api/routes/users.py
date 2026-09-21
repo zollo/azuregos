@@ -61,7 +61,7 @@ async def delete_user(
     user_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
-) -> None:
+):
     if user_id == admin.id:
         raise HTTPException(status_code=400, detail="You cannot delete your own account")
     user = await db.get(User, user_id)

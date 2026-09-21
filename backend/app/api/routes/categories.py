@@ -98,7 +98,7 @@ async def update_category(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(get_current_admin)],
 )
-async def delete_category(category_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
+async def delete_category(category_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     category = await db.get(Category, category_id)
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
