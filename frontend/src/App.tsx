@@ -11,6 +11,7 @@ import TicketDetail from "./pages/TicketDetail";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPortalEditor from "./pages/admin/AdminPortalEditor";
 import AdminPortals from "./pages/admin/AdminPortals";
+import AdminTickets from "./pages/admin/AdminTickets";
 import AdminUsers from "./pages/admin/AdminUsers";
 
 export default function App() {
@@ -41,6 +42,7 @@ export default function App() {
         }
       >
         <Route path="/admin" element={<AdminPortals />} />
+        <Route path="/admin/tickets" element={<AdminTickets />} />
         <Route path="/admin/portals/new" element={<AdminPortalEditor />} />
         <Route path="/admin/portals/:id" element={<AdminPortalEditor />} />
         <Route path="/admin/categories" element={<AdminCategories />} />

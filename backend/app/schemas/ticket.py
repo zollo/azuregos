@@ -54,6 +54,7 @@ class TicketListItem(BaseModel):
     id: uuid.UUID
     title: str
     portal_id: uuid.UUID
+    submitter_email: str
     ado_work_item_id: int | None
     ado_url: str | None
     ado_state: str | None

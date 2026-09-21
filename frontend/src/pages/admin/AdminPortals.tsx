@@ -32,6 +32,7 @@ export default function AdminPortals() {
           <p className="subtitle">Modular forms that front Azure DevOps work items.</p>
         </div>
         <div className="row">
+          <Link className="btn secondary" to="/admin/tickets">Queue</Link>
           <Link className="btn secondary" to="/admin/categories">Categories</Link>
           <Link className="btn secondary" to="/admin/users">Users</Link>
           <Link className="btn" to="/admin/portals/new">+ New Portal</Link>

@@ -1,5 +1,6 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -20,9 +21,11 @@ export default function Layout() {
           <Link to="/">Browse</Link>
           <Link to="/tickets">My Tickets</Link>
           {user?.role === "admin" && <Link to="/admin">Admin</Link>}
+          {user?.role === "admin" && <Link to="/admin/tickets">Queue</Link>}
         </div>
         <div className="spacer" />
         <span className="user">{user?.display_name || user?.email}</span>
+        <ThemeToggle />
         <button className="btn secondary small" onClick={handleLogout}>
           Sign out
         </button>

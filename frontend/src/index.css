@@ -1,6 +1,8 @@
 :root {
   --bg: #f4f6fb;
   --surface: #ffffff;
+  --input-bg: #ffffff;
+  --hover: #f1f5f9;
   --border: #e2e8f0;
   --text: #1e293b;
   --muted: #64748b;
@@ -12,6 +14,44 @@
   --radius: 10px;
   --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
   color-scheme: light;
+}
+
+/* Dark palette — applied when the user picks dark, or by system pref unless
+   the user has explicitly chosen light. */
+:root[data-theme="dark"] {
+  --bg: #0b1120;
+  --surface: #161f32;
+  --input-bg: #0f172a;
+  --hover: #1e293b;
+  --border: #2b374d;
+  --text: #e5ebf5;
+  --muted: #94a3b8;
+  --primary: #4f9fe6;
+  --primary-hover: #6cb2ee;
+  --danger: #f87171;
+  --success: #4ade80;
+  --warn: #fbbf24;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1120;
+    --surface: #161f32;
+    --input-bg: #0f172a;
+    --hover: #1e293b;
+    --border: #2b374d;
+    --text: #e5ebf5;
+    --muted: #94a3b8;
+    --primary: #4f9fe6;
+    --primary-hover: #6cb2ee;
+    --danger: #f87171;
+    --success: #4ade80;
+    --warn: #fbbf24;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -95,7 +135,7 @@ input[type="date"], select, textarea {
   border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
-  background: #fff;
+  background: var(--input-bg);
   color: var(--text);
 }
 textarea { min-height: 110px; resize: vertical; }
@@ -120,8 +160,8 @@ input:focus, select:focus, textarea:focus {
 }
 .btn:hover { background: var(--primary-hover); }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn.secondary { background: #fff; color: var(--text); border-color: var(--border); }
-.btn.secondary:hover { background: #f1f5f9; }
+.btn.secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
+.btn.secondary:hover { background: var(--hover); }
 .btn.danger { background: var(--danger); }
 .btn.small { padding: 5px 10px; font-size: 13px; }
 
@@ -131,7 +171,7 @@ input:focus, select:focus, textarea:focus {
 table { width: 100%; border-collapse: collapse; background: var(--surface); }
 th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
 th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; }
-tbody tr:hover { background: #f8fafc; }
+tbody tr:hover { background: var(--hover); }
 
 .badge {
   display: inline-block;

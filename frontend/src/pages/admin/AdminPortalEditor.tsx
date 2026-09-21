@@ -255,7 +255,7 @@ export default function AdminPortalEditor() {
           )}
 
           {fields.map((f, idx) => (
-            <div key={idx} className="card" style={{ marginTop: 14, background: "#f8fafc" }}>
+            <div key={idx} className="card" style={{ marginTop: 14, background: "var(--hover)" }}>
               <div className="row between">
                 <strong>Field {idx + 1}</strong>
                 <button

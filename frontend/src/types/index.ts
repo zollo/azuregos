@@ -112,6 +112,7 @@ export interface TicketListItem {
   id: string;
   title: string;
   portal_id: string;
+  submitter_email: string;
   ado_work_item_id: number | null;
   ado_url: string | null;
   ado_state: string | null;
