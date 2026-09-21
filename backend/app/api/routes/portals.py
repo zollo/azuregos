@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
+from app.config import settings
 from app.core.utils import slugify
 from app.db import get_db
 from app.models.category import Category
@@ -19,6 +20,7 @@ from app.schemas.portal import (
     PortalSummary,
     PortalUpdate,
 )
+from app.services.ado_client import ADOError, get_ado_client
 
 router = APIRouter(prefix="/portals", tags=["portals"])
 
@@ -97,6 +99,39 @@ async def _validate_category(db: AsyncSession, category_id: uuid.UUID | None) ->
         raise HTTPException(status_code=422, detail="Category does not exist")
 
 
+async def _validate_work_item_type(ado_project: str | None, work_item_type: str) -> None:
+    """Reject a work-item type that isn't valid for the target ADO project.
+
+    Only enforced when we can actually reach ADO and read the project's types:
+    if ADO isn't configured, or the lookup fails transiently, the save is
+    allowed (a missing project, however, is rejected).
+    """
+    client = get_ado_client()
+    if not client.configured:
+        return
+    project = ado_project or settings.ado_default_project
+    if not project:
+        return
+    try:
+        types = await client.list_work_item_types(project)
+    except ADOError as exc:
+        if exc.status_code == 404:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Azure DevOps project '{project}' was not found",
+            ) from exc
+        return  # transient/network error — don't block the save
+    names = {t.get("name") for t in types if t.get("name")}
+    if work_item_type not in names:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Work item type '{work_item_type}' is not valid for project "
+                f"'{project}'. Valid types: {', '.join(sorted(names))}"
+            ),
+        )
+
+
 @router.post(
     "",
     response_model=PortalRead,
@@ -109,6 +144,7 @@ async def create_portal(
     admin: User = Depends(get_current_admin),
 ) -> PortalRead:
     await _validate_category(db, payload.category_id)
+    await _validate_work_item_type(payload.ado_project, payload.work_item_type)
     portal = Portal(
         name=payload.name,
         slug=await _unique_slug(db, payload.name),
@@ -141,6 +177,12 @@ async def update_portal(
     data = payload.model_dump(exclude_unset=True)
     if "category_id" in data:
         await _validate_category(db, data["category_id"])
+    # Validate the effective project/type if either is changing.
+    if "work_item_type" in data or "ado_project" in data:
+        await _validate_work_item_type(
+            data.get("ado_project", portal.ado_project),
+            data.get("work_item_type", portal.work_item_type),
+        )
     if "fields" in data and data["fields"] is not None:
         data["fields"] = [f for f in data["fields"]]  # already dicts via model_dump
     if "name" in data:
