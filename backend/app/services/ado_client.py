@@ -27,6 +27,8 @@ import httpx
 from app.config import settings
 
 API_VERSION = "7.1"
+# The work-item comments ("Discussion") API is still a preview endpoint.
+COMMENTS_API_VERSION = "7.1-preview.4"
 
 TAG_MARKER = "azuregos"
 TAG_PORTAL_PREFIX = "azuregos-portal:"
@@ -188,6 +190,40 @@ class ADOClient:
         except httpx.RequestError as exc:
             raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
         self._raise_for_status(resp)
+
+    async def list_comments(self, project: str, work_item_id: int) -> list[dict[str, Any]]:
+        """Return a work item's discussion comments (oldest → newest)."""
+        project = project or self.default_project
+        url = (
+            f"{self.org_url}/{project}/_apis/wit/workItems/{work_item_id}"
+            f"/comments?api-version={COMMENTS_API_VERSION}"
+        )
+        try:
+            async with self._client() as client:
+                resp = await client.get(url)
+        except httpx.RequestError as exc:
+            raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
+        self._raise_for_status(resp)
+        comments = resp.json().get("comments", [])
+        # ADO returns newest-first; present chronologically.
+        return list(reversed(comments))
+
+    async def add_comment(
+        self, project: str, work_item_id: int, text: str
+    ) -> dict[str, Any]:
+        """Add a discussion comment to a work item. ``text`` may contain HTML."""
+        project = project or self.default_project
+        url = (
+            f"{self.org_url}/{project}/_apis/wit/workItems/{work_item_id}"
+            f"/comments?api-version={COMMENTS_API_VERSION}"
+        )
+        try:
+            async with self._client() as client:
+                resp = await client.post(url, json={"text": text})
+        except httpx.RequestError as exc:
+            raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
+        self._raise_for_status(resp)
+        return resp.json()
 
     @staticmethod
     def web_url(work_item: dict[str, Any]) -> str | None:

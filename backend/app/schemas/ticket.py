@@ -36,6 +36,18 @@ class TicketRead(BaseModel):
     updated_at: datetime
 
 
+class CommentCreate(BaseModel):
+    text: str = Field(min_length=1, max_length=10000)
+
+
+class TicketComment(BaseModel):
+    id: int
+    text: str
+    author: str
+    author_email: str | None = None
+    created_at: datetime
+
+
 class TicketListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

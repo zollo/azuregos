@@ -1,21 +1,54 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import StatusBadge from "../components/StatusBadge";
-import type { Ticket } from "../types";
+import type { Ticket, TicketComment } from "../types";
 
 export default function TicketDetail() {
   const { id } = useParams();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [comments, setComments] = useState<TicketComment[]>([]);
+  const [reply, setReply] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
+
+  const loadComments = useCallback(async () => {
+    if (!id) return;
+    try {
+      setComments(await api.get<TicketComment[]>(`/api/tickets/${id}/comments`));
+    } catch {
+      /* discussion is best-effort; ignore load errors */
+    }
+  }, [id]);
+
   useEffect(() => {
     if (!id) return;
     api
       .get<Ticket>(`/api/tickets/${id}?refresh=true`)
-      .then(setTicket)
+      .then((t) => {
+        setTicket(t);
+        if (t.ado_work_item_id) void loadComments();
+      })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, loadComments]);
+
+  const submitReply = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!id || !reply.trim()) return;
+    setCommentError(null);
+    setPosting(true);
+    try {
+      await api.post(`/api/tickets/${id}/comments`, { text: reply });
+      setReply("");
+      await loadComments();
+    } catch (err) {
+      setCommentError(err instanceof ApiError ? err.message : "Failed to post reply");
+    } finally {
+      setPosting(false);
+    }
+  };
 
   if (loading) return <div className="container muted">Loading…</div>;
   if (!ticket) return <div className="container"><div className="alert error">Ticket not found.</div></div>;
@@ -86,6 +119,51 @@ export default function TicketDetail() {
           )}
         </div>
       </div>
+
+      {/* Discussion */}
+      <h2>Discussion</h2>
+      {!ticket.ado_work_item_id ? (
+        <div className="alert info">
+          The discussion will be available once your request reaches the service desk.
+        </div>
+      ) : (
+        <div className="card">
+          {comments.length === 0 ? (
+            <p className="muted" style={{ margin: 0 }}>No replies yet.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {comments.map((c) => (
+                <div key={c.id}>
+                  <div className="row between">
+                    <strong>{c.author}</strong>
+                    <span className="muted" style={{ fontSize: 13 }}>
+                      {new Date(c.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{c.text}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <hr className="divider" />
+          {commentError && <div className="alert error">{commentError}</div>}
+          <form onSubmit={submitReply}>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label htmlFor="reply">Add a reply</label>
+              <textarea
+                id="reply"
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                placeholder="Write a reply to the service desk…"
+              />
+            </div>
+            <button className="btn" disabled={posting || !reply.trim()}>
+              {posting ? "Posting…" : "Post reply"}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

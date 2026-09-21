@@ -100,6 +100,14 @@ export interface Ticket {
   updated_at: string;
 }
 
+export interface TicketComment {
+  id: number;
+  text: string;
+  author: string;
+  author_email: string | null;
+  created_at: string;
+}
+
 export interface TicketListItem {
   id: string;
   title: string;

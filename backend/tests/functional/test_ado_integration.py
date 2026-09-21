@@ -171,6 +171,35 @@ async def test_create_with_mapped_ado_field(
     assert fetched["fields"].get("Microsoft.VSTS.Common.Priority") == 2
 
 
+async def test_comment_add_and_list_roundtrip(
+    ado_client: ADOClient,
+    ado_project: str,
+    work_item_type: str,
+    created_work_items: list[int],
+):
+    """Post discussion comments to a work item and read them back in order."""
+    work_item = await ado_client.create_work_item(
+        project=ado_project,
+        work_item_type=work_item_type,
+        title=_unique("Azuregos discussion"),
+        description="",
+        tags=[TAG_MARKER],
+    )
+    wid = work_item["id"]
+    created_work_items.append(wid)
+
+    first = await ado_client.add_comment(ado_project, wid, "First reply")
+    assert first.get("id")
+    await ado_client.add_comment(ado_project, wid, "Second <b>reply</b>")
+
+    comments = await ado_client.list_comments(ado_project, wid)
+    texts = [c.get("text", "") for c in comments]
+    assert len(comments) >= 2
+    # Returned oldest-first
+    assert "First reply" in texts[0]
+    assert any("Second" in t for t in texts)
+
+
 async def test_invalid_project_raises_non_retryable(ado_client: ADOClient):
     """A bad project surfaces as a non-retryable ADOError (so the retry loop
     won't hammer it forever)."""
