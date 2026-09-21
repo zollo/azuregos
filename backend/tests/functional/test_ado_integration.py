@@ -13,6 +13,7 @@ import uuid
 
 import pytest
 
+from app.services import ticket_service
 from app.services.ado_client import (
     TAG_MARKER,
     TAG_PORTAL_PREFIX,
@@ -20,7 +21,6 @@ from app.services.ado_client import (
     ADOClient,
     ADOError,
 )
-from app.services import ticket_service
 
 pytestmark = pytest.mark.functional
 
