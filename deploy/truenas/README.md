@@ -26,20 +26,32 @@ subfolder created automatically on first run.
 
 ## 2. Configure
 
-Copy `.env.example` to `.env` and fill it in. At minimum set the three secrets:
+Every setting — **including all secrets** (`SECRET_KEY`, `POSTGRES_PASSWORD`,
+`BOOTSTRAP_ADMIN_PASSWORD`, `ADO_PAT`, OIDC/SAML) — is a plain environment
+variable. Provide them however your install method prefers:
+
+- **Dockge / `docker compose`:** a `.env` file next to `docker-compose.yml`.
+- **Shell:** `export SECRET_KEY=…` before `docker compose up`.
+- **TrueNAS Custom App:** the app's *Environment Variables* section.
+
+The stack ships with insecure placeholder defaults so it boots with zero
+config — **override the secrets before any real use.** Generate strong values:
 
 ```bash
 cp .env.example .env
-# generate values:
 openssl rand -hex 32        # SECRET_KEY
 openssl rand -hex 16        # POSTGRES_PASSWORD
 openssl rand -hex 12        # BOOTSTRAP_ADMIN_PASSWORD
 ```
 
-Set `AZUREGOS_DATA` to your dataset path, `AZUREGOS_PORT` to the host port, and
-`AZUREGOS_PUBLIC_URL` to how users will reach it. Add your `ADO_*` values to
+Also set `AZUREGOS_DATA` to your dataset path, `AZUREGOS_PORT` to the host port,
+and `AZUREGOS_PUBLIC_URL` to how users will reach it. Add your `ADO_*` values to
 enable Azure DevOps syncing (you can do this later — tickets queue locally and
 sync once configured).
+
+> Changing `POSTGRES_PASSWORD` after the first run won't update an
+> already-initialized database. Set it before the first `up`, or reset by
+> stopping the stack and clearing the `postgres` data directory.
 
 ## 3. Install
 

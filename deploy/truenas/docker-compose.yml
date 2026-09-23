@@ -15,19 +15,24 @@
 # ─────────────────────────────────────────────────────────────────────────
 name: azuregos
 
+# Every value below is a plain environment variable you can override from any
+# source: a .env file (Dockge / `docker compose`), the shell, or the TrueNAS
+# Custom App "Environment Variables" section. The secrets have insecure
+# placeholder defaults so the stack boots out of the box — CHANGE THEM before
+# any real use (see .env.example / README).
 x-backend-env: &backend-env
   AZUREGOS_ENV: production
-  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env (openssl rand -hex 32)}
+  SECRET_KEY: ${SECRET_KEY:-CHANGE_ME_openssl_rand_hex_32}
   POSTGRES_HOST: postgres
   POSTGRES_PORT: "5432"
   POSTGRES_USER: ${POSTGRES_USER:-azuregos}
-  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-azuregos}
   POSTGRES_DB: ${POSTGRES_DB:-azuregos}
   REDIS_URL: redis://redis:6379/0
   CORS_ORIGINS: ${AZUREGOS_PUBLIC_URL:-http://localhost:30080}
   ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
   BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@azuregos.local}
-  BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?set BOOTSTRAP_ADMIN_PASSWORD in .env}
+  BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-admin}
   # Azure DevOps
   ADO_ORG_URL: ${ADO_ORG_URL:-}
   ADO_PAT: ${ADO_PAT:-}
@@ -52,7 +57,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-azuregos}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-azuregos}
       POSTGRES_DB: ${POSTGRES_DB:-azuregos}
       # Keep data in a subdir so the mounted dataset root can hold other files.
       PGDATA: /var/lib/postgresql/data/pgdata
