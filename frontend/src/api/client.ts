@@ -1,8 +1,13 @@
 // Minimal typed fetch wrapper around the Azuregos API.
 
-const BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ||
-  "http://localhost:8000";
+// Default to same-origin relative requests: the frontend's nginx reverse-proxies
+// /api to the backend, so one image works behind any host (TrueNAS, k8s ingress,
+// compose) with no baked URL and no CORS. Set VITE_API_BASE_URL only to target a
+// different origin (e.g. the Vite dev server calling the backend on :8000).
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(
+  /\/$/,
+  "",
+) ?? "";
 
 const TOKEN_KEY = "azuregos_token";
 

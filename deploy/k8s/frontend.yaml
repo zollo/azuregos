@@ -17,7 +17,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          # Build this image with --build-arg VITE_API_BASE_URL=<public API URL>
+          # SPA uses same-origin /api; the ingress routes /api to the backend,
+          # so no VITE_API_BASE_URL build arg is needed.
           image: ghcr.io/zollo/azuregos-frontend:latest
           ports:
             - containerPort: 80

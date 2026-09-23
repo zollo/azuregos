@@ -1,0 +1,128 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Azuregos — TrueNAS SCALE (Electric Eel 24.10+) deployment
+#
+# Optimized for TrueNAS:
+#   * Uses prebuilt images from GHCR (TrueNAS does not build images).
+#   * Only the frontend port is published; everything else is internal.
+#   * The frontend reverse-proxies /api to the backend, so you reach the whole
+#     app on ONE port with no CORS or baked API URL — works from any device.
+#   * Postgres (the source of truth) lives on a host dataset for snapshots/
+#     backups; Redis is just the Celery broker so it uses a managed volume.
+#
+# Recommended install path: TrueNAS Apps → "Custom App" → Install via YAML,
+# or a compose manager like Dockge. Provide the variables via a .env file
+# (see .env.example) or by editing the values below.
+# ─────────────────────────────────────────────────────────────────────────
+name: azuregos
+
+x-backend-env: &backend-env
+  AZUREGOS_ENV: production
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env (openssl rand -hex 32)}
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: ${POSTGRES_USER:-azuregos}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+  POSTGRES_DB: ${POSTGRES_DB:-azuregos}
+  REDIS_URL: redis://redis:6379/0
+  CORS_ORIGINS: ${AZUREGOS_PUBLIC_URL:-http://localhost:30080}
+  ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+  BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@azuregos.local}
+  BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?set BOOTSTRAP_ADMIN_PASSWORD in .env}
+  # Azure DevOps
+  ADO_ORG_URL: ${ADO_ORG_URL:-}
+  ADO_PAT: ${ADO_PAT:-}
+  ADO_DEFAULT_PROJECT: ${ADO_DEFAULT_PROJECT:-}
+  ADO_RETRY_INTERVAL_SECONDS: ${ADO_RETRY_INTERVAL_SECONDS:-60}
+  ADO_MAX_RETRY_ATTEMPTS: ${ADO_MAX_RETRY_ATTEMPTS:-20}
+  # Optional SSO (leave disabled for local accounts)
+  OIDC_ENABLED: ${OIDC_ENABLED:-false}
+  OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+  OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+  OIDC_DISCOVERY_URL: ${OIDC_DISCOVERY_URL:-}
+  OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
+  SAML_ENABLED: ${SAML_ENABLED:-false}
+  SAML_METADATA_URL: ${SAML_METADATA_URL:-}
+  SAML_SP_ENTITY_ID: ${SAML_SP_ENTITY_ID:-azuregos}
+  SAML_ACS_URL: ${SAML_ACS_URL:-}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: azuregos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-azuregos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-azuregos}
+      # Keep data in a subdir so the mounted dataset root can hold other files.
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      # Host dataset — snapshot/backup this path. Change 'tank' to your pool.
+      - ${AZUREGOS_DATA:-/mnt/tank/apps/azuregos}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-azuregos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: azuregos-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    # Broker/cache only — ticket data lives in Postgres — so a managed volume
+    # (or none) is fine; nothing here needs snapshotting.
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    image: ghcr.io/zollo/azuregos-backend:${AZUREGOS_TAG:-latest}
+    container_name: azuregos-backend
+    restart: unless-stopped
+    environment: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  worker:
+    image: ghcr.io/zollo/azuregos-backend:${AZUREGOS_TAG:-latest}
+    container_name: azuregos-worker
+    restart: unless-stopped
+    environment: *backend-env
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    command: >
+      celery -A app.workers.celery_app.celery_app worker
+      --beat --loglevel=info
+
+  frontend:
+    image: ghcr.io/zollo/azuregos-frontend:${AZUREGOS_TAG:-latest}
+    container_name: azuregos-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      # The only published port. Open http://<truenas-ip>:${AZUREGOS_PORT}.
+      - "${AZUREGOS_PORT:-30080}:80"
+
+volumes:
+  redis-data:

@@ -140,6 +140,19 @@ Every work item the suite creates is deleted in teardown. Use a **dedicated,
 short-lived PAT** (Work Items: Read & Write) and revoke it afterward — never
 commit it.
 
+## Deploying to TrueNAS SCALE
+
+A ready-made compose tuned for TrueNAS SCALE (Electric Eel 24.10+) lives in
+[`deploy/truenas/`](deploy/truenas/). It uses the published GHCR images,
+publishes a single port (the frontend reverse-proxies `/api` to the backend),
+and keeps Postgres on a host dataset for snapshots. See
+[deploy/truenas/README.md](deploy/truenas/README.md).
+
+> The frontend is **origin-portable**: the SPA calls `/api` relatively and the
+> frontend's nginx proxies it to the backend, so one image works behind any host
+> (TrueNAS, k8s ingress, compose) with no baked API URL and no CORS. Set
+> `VITE_API_BASE_URL` only when the API is on a different origin (e.g. Vite dev).
+
 ## Deploying to Kubernetes
 
 Manifests live in `deploy/k8s` (kustomize). They deploy Postgres, Redis, the
