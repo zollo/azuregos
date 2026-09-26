@@ -91,3 +91,14 @@ def test_build_ado_fields_includes_area_path():
     mapped = ticket_service.build_ado_fields(portal, _ticket({"prio": 1}))
     assert mapped["System.AreaPath"] == "dev-test\\Team"
     assert mapped["Microsoft.VSTS.Common.Priority"] == 1
+
+
+def test_portal_area_path_wins_over_custom_mapping():
+    # A custom field mapped to System.AreaPath must not override the portal path.
+    portal = _portal(
+        [{"name": "area", "label": "Area", "type": "text",
+          "ado_field_ref": "System.AreaPath"}],
+        area_path="dev-test\\Official",
+    )
+    mapped = ticket_service.build_ado_fields(portal, _ticket({"area": "dev-test\\Sneaky"}))
+    assert mapped["System.AreaPath"] == "dev-test\\Official"

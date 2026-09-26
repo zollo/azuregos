@@ -82,16 +82,21 @@ def build_description(portal: Portal, ticket: Ticket) -> str:
 
 
 def build_ado_fields(portal: Portal, ticket: Ticket) -> dict:
-    """Values for real ADO fields: the portal's area path plus any custom
-    fields mapped to a reference name."""
+    """Values for real ADO fields: any custom fields mapped to a reference name,
+    plus the portal's area path.
+
+    The portal area path is applied last so it always wins — a custom field
+    mapped to ``System.AreaPath`` can't let a submitter override the portal's
+    configured area path.
+    """
     mapped: dict = {}
-    if portal.area_path:
-        mapped["System.AreaPath"] = portal.area_path
     definitions = {f["name"]: FieldDefinition(**f) for f in portal.fields}
     for name, value in ticket.field_values.items():
         defn = definitions.get(name)
         if defn and defn.ado_field_ref:
             mapped[defn.ado_field_ref] = value
+    if portal.area_path:
+        mapped["System.AreaPath"] = portal.area_path
     return mapped
 
 

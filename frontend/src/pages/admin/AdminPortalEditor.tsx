@@ -69,15 +69,22 @@ export default function AdminPortalEditor() {
   // An empty project means "use the server default".
   useEffect(() => {
     if (ado && !ado.configured) return;
+    // Guard against out-of-order responses: if the project changes before a
+    // request resolves, ignore the stale result so it can't overwrite the
+    // options for the now-current project.
+    let cancelled = false;
     const qs = adoProject ? `?project=${encodeURIComponent(adoProject)}` : "";
     api
       .get<AdoWorkItemTypesResponse>(`/api/ado/work-item-types${qs}`)
-      .then((r) => setWorkItemTypes(r.work_item_types))
-      .catch(() => setWorkItemTypes([]));
+      .then((r) => !cancelled && setWorkItemTypes(r.work_item_types))
+      .catch(() => !cancelled && setWorkItemTypes([]));
     api
       .get<AdoAreaPathsResponse>(`/api/ado/area-paths${qs}`)
-      .then((r) => setAreaPaths(r.area_paths))
-      .catch(() => setAreaPaths([]));
+      .then((r) => !cancelled && setAreaPaths(r.area_paths))
+      .catch(() => !cancelled && setAreaPaths([]));
+    return () => {
+      cancelled = true;
+    };
   }, [adoProject, ado]);
 
   useEffect(() => {
