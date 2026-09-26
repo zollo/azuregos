@@ -32,6 +32,8 @@ class Portal(UUIDMixin, TimestampMixin, Base):
     # Azure DevOps mapping
     ado_project: Mapped[str | None] = mapped_column(String(200), nullable=True)
     work_item_type: Mapped[str] = mapped_column(String(100), default="Issue", nullable=False)
+    # System.AreaPath value (e.g. "Project\\Team\\SubArea"); null = project root.
+    area_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     # List[FieldDefinition] — custom fields beyond Title/Description.
     fields: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)

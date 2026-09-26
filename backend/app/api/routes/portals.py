@@ -39,24 +39,38 @@ async def catalog(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[dict]:
-    """Active portals grouped by category, with uncategorized under 'General'."""
+    """Active portals grouped by category, with uncategorized under 'General'.
+
+    Every real category is included even when it has no active portals (the
+    front page greys these out); 'General' appears only when it has portals.
+    """
+    cat_result = await db.execute(select(Category).order_by(Category.sort_order, Category.name))
+    categories = list(cat_result.scalars().all())
+
     result = await db.execute(
         select(Portal).where(Portal.is_active.is_(True)).order_by(Portal.name)
     )
     portals = list(result.scalars().all())
 
-    groups: dict[str, dict] = {}
+    # Seed a group for every real category so empties still show up.
+    groups: dict[str, dict] = {
+        c.name: {
+            "category": c.name,
+            "icon": c.icon,
+            "sort_order": c.sort_order,
+            "portals": [],
+        }
+        for c in categories
+    }
+
     for p in portals:
-        name = p.category.name if p.category else GENERAL
-        sort_order = p.category.sort_order if p.category else 9999
+        if p.category:
+            name, icon, sort_order = p.category.name, p.category.icon, p.category.sort_order
+        else:
+            name, icon, sort_order = GENERAL, "folder", 9999
         grp = groups.setdefault(
             name,
-            {
-                "category": name,
-                "icon": p.category.icon if p.category else "folder",
-                "sort_order": sort_order,
-                "portals": [],
-            },
+            {"category": name, "icon": icon, "sort_order": sort_order, "portals": []},
         )
         grp["portals"].append(PortalSummary.model_validate(p).model_dump())
 
@@ -132,6 +146,36 @@ async def _validate_work_item_type(ado_project: str | None, work_item_type: str)
         )
 
 
+async def _validate_area_path(ado_project: str | None, area_path: str | None) -> None:
+    """Reject an area path not present in the target project's synced areas.
+
+    No area path (project root) is always valid. Skipped when ADO is
+    unreachable; a missing project is rejected.
+    """
+    if not area_path:
+        return
+    client = get_ado_client()
+    if not client.configured:
+        return
+    project = ado_project or settings.ado_default_project
+    if not project:
+        return
+    try:
+        paths = await client.list_area_paths(project)
+    except ADOError as exc:
+        if exc.status_code == 404:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Azure DevOps project '{project}' was not found",
+            ) from exc
+        return  # transient/network error — don't block the save
+    if area_path not in paths:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Area path '{area_path}' is not valid for project '{project}'.",
+        )
+
+
 @router.post(
     "",
     response_model=PortalRead,
@@ -145,6 +189,8 @@ async def create_portal(
 ) -> PortalRead:
     await _validate_category(db, payload.category_id)
     await _validate_work_item_type(payload.ado_project, payload.work_item_type)
+    area_path = payload.area_path or None
+    await _validate_area_path(payload.ado_project, area_path)
     portal = Portal(
         name=payload.name,
         slug=await _unique_slug(db, payload.name),
@@ -153,6 +199,7 @@ async def create_portal(
         category_id=payload.category_id,
         ado_project=payload.ado_project,
         work_item_type=payload.work_item_type,
+        area_path=area_path,
         fields=[f.model_dump() for f in payload.fields],
         is_active=payload.is_active,
         created_by_id=admin.id,
@@ -182,6 +229,14 @@ async def update_portal(
         await _validate_work_item_type(
             data.get("ado_project", portal.ado_project),
             data.get("work_item_type", portal.work_item_type),
+        )
+    # Normalize a blank area path to null (project root) and validate.
+    if "area_path" in data:
+        data["area_path"] = data["area_path"] or None
+    if "area_path" in data or "ado_project" in data:
+        await _validate_area_path(
+            data.get("ado_project", portal.ado_project),
+            data.get("area_path", portal.area_path),
         )
     if "fields" in data and data["fields"] is not None:
         data["fields"] = [f for f in data["fields"]]  # already dicts via model_dump

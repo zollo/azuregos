@@ -177,6 +177,26 @@ class ADOClient:
         self._raise_for_status(resp)
         return resp.json().get("value", [])
 
+    async def list_area_paths(self, project: str, depth: int = 20) -> list[str]:
+        """Return the project's area paths as System.AreaPath values.
+
+        The classification-nodes API returns paths like ``\\Proj\\Area\\Team``;
+        the value a work item's System.AreaPath wants is ``Proj\\Team`` (the
+        ``\\Area`` classification segment removed). Returned depth-first.
+        """
+        project = project or self.default_project
+        url = (
+            f"{self.org_url}/{project}/_apis/wit/classificationnodes/areas"
+            f"?$depth={depth}&api-version={API_VERSION}"
+        )
+        try:
+            async with self._client() as client:
+                resp = await client.get(url)
+        except httpx.RequestError as exc:
+            raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
+        self._raise_for_status(resp)
+        return _flatten_area_paths(resp.json())
+
     async def delete_work_item(self, work_item_id: int, *, destroy: bool = False) -> None:
         """Delete a work item. By default it goes to the recycle bin; ``destroy``
         permanently removes it. Used to clean up after functional tests."""
@@ -230,6 +250,25 @@ class ADOClient:
         links = work_item.get("_links", {})
         html = links.get("html", {})
         return html.get("href")
+
+
+def area_node_to_path(node_path: str) -> str:
+    """Convert a classification-node path (``\\Proj\\Area\\Team``) to a
+    System.AreaPath value (``Proj\\Team``)."""
+    parts = node_path.lstrip("\\").split("\\")
+    if len(parts) >= 2 and parts[1] == "Area":
+        del parts[1]
+    return "\\".join(parts)
+
+
+def _flatten_area_paths(node: dict[str, Any]) -> list[str]:
+    """Depth-first list of area paths from a classification-node tree."""
+    paths: list[str] = []
+    if node.get("path"):
+        paths.append(area_node_to_path(node["path"]))
+    for child in node.get("children", []):
+        paths.extend(_flatten_area_paths(child))
+    return paths
 
 
 def get_ado_client() -> ADOClient:

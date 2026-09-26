@@ -200,6 +200,32 @@ async def test_comment_add_and_list_roundtrip(
     assert any("Second" in t for t in texts)
 
 
+async def test_list_area_paths_and_create_with_area(
+    ado_client: ADOClient,
+    ado_project: str,
+    work_item_type: str,
+    created_work_items: list[int],
+):
+    """List the project's area paths and file a work item under one."""
+    paths = await ado_client.list_area_paths(ado_project)
+    assert isinstance(paths, list) and paths, "expected at least the project root area"
+
+    target = paths[-1]  # a deepest/leaf area
+    work_item = await ado_client.create_work_item(
+        project=ado_project,
+        work_item_type=work_item_type,
+        title=_unique("Azuregos area path"),
+        description="",
+        tags=[TAG_MARKER],
+        extra_fields={"System.AreaPath": target},
+    )
+    wid = work_item["id"]
+    created_work_items.append(wid)
+
+    fetched = await ado_client.get_work_item(wid)
+    assert fetched["fields"]["System.AreaPath"] == target
+
+
 async def test_invalid_project_raises_non_retryable(ado_client: ADOClient):
     """A bad project surfaces as a non-retryable ADOError (so the retry loop
     won't hammer it forever)."""

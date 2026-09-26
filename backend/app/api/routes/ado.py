@@ -50,3 +50,19 @@ async def list_work_item_types(project: str | None = None) -> dict:
         ],
         "error": None,
     }
+
+
+@router.get("/area-paths")
+async def list_area_paths(project: str | None = None) -> dict:
+    """Valid area paths for ``project`` (or the server default if omitted)."""
+    client = get_ado_client()
+    if not client.configured:
+        return {"configured": False, "area_paths": [], "error": None}
+    proj = project or client.default_project
+    if not proj:
+        return {"configured": True, "area_paths": [], "error": "No project specified"}
+    try:
+        paths = await client.list_area_paths(proj)
+    except ADOError as exc:
+        return {"configured": True, "area_paths": [], "error": str(exc)}
+    return {"configured": True, "area_paths": paths, "error": None}
