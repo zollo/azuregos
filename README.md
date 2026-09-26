@@ -200,14 +200,38 @@ especially) using your secrets manager. Because the ingress serves the API and
 SPA on one host, build the frontend image with
 `--build-arg VITE_API_BASE_URL=https://<your-host>`.
 
-## CI
+## CI / releases
 
-`.github/workflows/ci.yml`:
+`.github/workflows/ci.yml` runs on every PR and every push to `main`:
 
 1. **backend** — ruff lint + pytest
 2. **frontend** — type-check, build, vitest
-3. **images** — on push, build & push both container images to GHCR
-   (`ghcr.io/<owner>/azuregos-backend` and `-frontend`) with buildx cache.
+3. **smoke** — boots the backend against ephemeral Postgres/Redis and checks
+   `/api/health/ready`
+
+On a **merge to `main`** (after the above pass) two more jobs run:
+
+4. **version** — computes the next **semantic version** from commit history
+   (Conventional Commits: `feat:` → minor, `fix:` → patch, `BREAKING CHANGE`
+   → major; default patch), creates the `vX.Y.Z` git tag and a GitHub release.
+5. **images** — builds & pushes both images to GHCR tagged `latest`, `X.Y.Z`,
+   `X.Y`, and `sha-<short>`; then **signs** each image with cosign (keyless,
+   via GitHub OIDC — recorded in the Rekor transparency log) and generates a
+   **build-provenance attestation** pushed to the registry.
+
+### Verifying an image
+
+```bash
+IMAGE=ghcr.io/zollo/azuregos-backend:latest
+
+# Signature (keyless / GitHub OIDC identity)
+cosign verify "$IMAGE" \
+  --certificate-identity-regexp "https://github.com/zollo/azuregos/.github/workflows/ci.yml@.*" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+# Build provenance attestation
+gh attestation verify "oci://$IMAGE" --repo zollo/azuregos
+```
 
 ## Project layout
 
