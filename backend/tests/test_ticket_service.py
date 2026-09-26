@@ -11,9 +11,11 @@ from app.services.ado_client import (
 )
 
 
-def _portal(fields):
+def _portal(fields, area_path=None):
     """A lightweight stand-in for the Portal ORM object."""
-    return types.SimpleNamespace(name="IT Help", slug="it-help", fields=fields)
+    return types.SimpleNamespace(
+        name="IT Help", slug="it-help", fields=fields, area_path=area_path
+    )
 
 
 def _ticket(field_values, description="Please help"):
@@ -78,3 +80,14 @@ def test_build_ado_fields_only_mapped():
         portal, _ticket({"prio": 2, "dept": "Finance"})
     )
     assert mapped == {"Microsoft.VSTS.Common.Priority": 2}
+
+
+def test_build_ado_fields_includes_area_path():
+    portal = _portal(
+        [{"name": "prio", "label": "Priority", "type": "text",
+          "ado_field_ref": "Microsoft.VSTS.Common.Priority"}],
+        area_path="dev-test\\Team",
+    )
+    mapped = ticket_service.build_ado_fields(portal, _ticket({"prio": 1}))
+    assert mapped["System.AreaPath"] == "dev-test\\Team"
+    assert mapped["Microsoft.VSTS.Common.Priority"] == 1

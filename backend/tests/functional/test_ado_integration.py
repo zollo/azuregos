@@ -116,6 +116,7 @@ async def test_ticket_service_render_roundtrip(
     portal = types.SimpleNamespace(
         name="IT Help",
         slug="it-help",
+        area_path=None,
         fields=[{"name": "department", "label": "Department", "type": "text"}],
     )
     ticket = types.SimpleNamespace(
