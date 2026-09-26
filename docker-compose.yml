@@ -69,6 +69,14 @@ services:
     command: >
       celery -A app.workers.celery_app.celery_app worker
       --beat --loglevel=info
+    # Override the backend image's HTTP healthcheck (the worker serves no HTTP);
+    # ping the worker over the broker instead.
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.workers.celery_app.celery_app inspect ping --timeout 10 >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 45s
 
   frontend:
     build:

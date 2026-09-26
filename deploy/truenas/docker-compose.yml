@@ -118,6 +118,14 @@ services:
     command: >
       celery -A app.workers.celery_app.celery_app worker
       --beat --loglevel=info
+    # The worker runs Celery (no HTTP server), so it must NOT inherit the
+    # backend image's HTTP healthcheck. Ping the worker over the broker instead.
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.workers.celery_app.celery_app inspect ping --timeout 10 >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 45s
 
   frontend:
     image: ghcr.io/zollo/azuregos-frontend:${AZUREGOS_TAG:-latest}
@@ -128,6 +136,14 @@ services:
     ports:
       # The only published port. Open http://<truenas-ip>:${AZUREGOS_PORT}.
       - "${AZUREGOS_PORT:-30080}:80"
+    # Explicit healthcheck with a start_period so TrueNAS marks it healthy
+    # promptly and the app leaves the "Deploying" state.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
 volumes:
   redis-data:
