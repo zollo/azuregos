@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
 import type {
+  AdoAreaPathsResponse,
   AdoProjectsResponse,
   AdoWorkItemType,
   AdoWorkItemTypesResponse,
@@ -47,15 +48,17 @@ export default function AdminPortalEditor() {
   const [categoryId, setCategoryId] = useState<string>("");
   const [adoProject, setAdoProject] = useState("");
   const [workItemType, setWorkItemType] = useState("Issue");
+  const [areaPath, setAreaPath] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [fields, setFields] = useState<FieldDefinition[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(editing);
 
-  // Azure DevOps metadata for the project / work-item-type pickers.
+  // Azure DevOps metadata for the project / work-item-type / area-path pickers.
   const [ado, setAdo] = useState<AdoProjectsResponse | null>(null);
   const [workItemTypes, setWorkItemTypes] = useState<AdoWorkItemType[]>([]);
+  const [areaPaths, setAreaPaths] = useState<string[]>([]);
 
   useEffect(() => {
     api.get<Category[]>("/api/categories").then(setCategories).catch(() => {});
@@ -66,11 +69,22 @@ export default function AdminPortalEditor() {
   // An empty project means "use the server default".
   useEffect(() => {
     if (ado && !ado.configured) return;
+    // Guard against out-of-order responses: if the project changes before a
+    // request resolves, ignore the stale result so it can't overwrite the
+    // options for the now-current project.
+    let cancelled = false;
     const qs = adoProject ? `?project=${encodeURIComponent(adoProject)}` : "";
     api
       .get<AdoWorkItemTypesResponse>(`/api/ado/work-item-types${qs}`)
-      .then((r) => setWorkItemTypes(r.work_item_types))
-      .catch(() => setWorkItemTypes([]));
+      .then((r) => !cancelled && setWorkItemTypes(r.work_item_types))
+      .catch(() => !cancelled && setWorkItemTypes([]));
+    api
+      .get<AdoAreaPathsResponse>(`/api/ado/area-paths${qs}`)
+      .then((r) => !cancelled && setAreaPaths(r.area_paths))
+      .catch(() => !cancelled && setAreaPaths([]));
+    return () => {
+      cancelled = true;
+    };
   }, [adoProject, ado]);
 
   useEffect(() => {
@@ -83,6 +97,7 @@ export default function AdminPortalEditor() {
         setCategoryId(p.category_id || "");
         setAdoProject(p.ado_project || "");
         setWorkItemType(p.work_item_type);
+        setAreaPath(p.area_path || "");
         setIsActive(p.is_active);
         setFields(p.fields);
       }
@@ -115,6 +130,7 @@ export default function AdminPortalEditor() {
       category_id: categoryId || null,
       ado_project: adoProject || null,
       work_item_type: workItemType,
+      area_path: areaPath || null,
       is_active: isActive,
       fields,
     };
@@ -223,10 +239,35 @@ export default function AdminPortalEditor() {
               )}
             </div>
           </div>
+          <div className="field">
+            <label>Area Path</label>
+            {ado?.configured && areaPaths.length > 0 ? (
+              <select value={areaPath} onChange={(e) => setAreaPath(e.target.value)}>
+                <option value="">Project root (default)</option>
+                {areaPath && !areaPaths.includes(areaPath) && (
+                  <option value={areaPath}>{areaPath} (not found)</option>
+                )}
+                {areaPaths.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={areaPath}
+                onChange={(e) => setAreaPath(e.target.value)}
+                placeholder="e.g. Project\Team\SubArea (blank = project root)"
+              />
+            )}
+            <div className="help">
+              Work items created through this portal are filed under this ADO area path.
+            </div>
+          </div>
           {ado && !ado.configured && (
             <p className="help">
-              Connect Azure DevOps (set ADO_ORG_URL / ADO_PAT) to pick the project and
-              work-item type from a list.
+              Connect Azure DevOps (set ADO_ORG_URL / ADO_PAT) to pick the project,
+              work-item type, and area path from a list.
             </p>
           )}
           {ado?.error && (

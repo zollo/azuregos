@@ -147,6 +147,13 @@ h2 { font-size: 18px; margin: 24px 0 12px; }
 }
 .tile:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(11, 92, 173, 0.12); }
 .tile:active { transform: translateY(1px); }
+.tile.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+.tile.disabled:hover { border-color: var(--border); box-shadow: var(--shadow); }
+.tile.disabled:active { transform: none; }
 .tile h3 { margin: 0 0 6px; font-size: 16px; }
 .tile p { margin: 0; color: var(--muted); font-size: 14px; }
 .tile .count { color: var(--primary); font-size: 13px; font-weight: 600; margin-top: 10px; }

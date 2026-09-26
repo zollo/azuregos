@@ -9,16 +9,24 @@ from app.services.ado_client import ADOError
 
 
 class _FakeClient:
-    def __init__(self, *, configured=True, types=None, raise_exc=None, default_project="P"):
+    def __init__(
+        self, *, configured=True, types=None, areas=None, raise_exc=None, default_project="P"
+    ):
         self.configured = configured
         self.default_project = default_project
         self._types = types or []
+        self._areas = areas or []
         self._raise = raise_exc
 
     async def list_work_item_types(self, project):
         if self._raise:
             raise self._raise
         return self._types
+
+    async def list_area_paths(self, project):
+        if self._raise:
+            raise self._raise
+        return self._areas
 
 
 def _patch(monkeypatch, client):
@@ -59,3 +67,35 @@ async def test_skips_on_transient_ado_error(monkeypatch):
     _patch(monkeypatch, _FakeClient(raise_exc=err))
     # Transient error must not block the save.
     await portals._validate_work_item_type("P", "AnythingGoesNow")
+
+
+# ── Area path validation ──────────────────────────────────────────────────
+async def test_area_path_blank_is_allowed(monkeypatch):
+    # Not configured / no lookup needed; project root is always valid.
+    _patch(monkeypatch, _FakeClient(areas=[]))
+    await portals._validate_area_path("P", None)
+    await portals._validate_area_path("P", "")
+
+
+async def test_area_path_valid(monkeypatch):
+    _patch(monkeypatch, _FakeClient(areas=["P", "P\\Team", "P\\Team\\Sub"]))
+    await portals._validate_area_path("P", "P\\Team\\Sub")
+
+
+async def test_area_path_invalid_rejected(monkeypatch):
+    _patch(monkeypatch, _FakeClient(areas=["P", "P\\Team"]))
+    with pytest.raises(HTTPException) as exc:
+        await portals._validate_area_path("P", "P\\Nope")
+    assert exc.value.status_code == 422
+    assert "P\\Nope" in exc.value.detail
+
+
+async def test_area_path_skips_when_not_configured(monkeypatch):
+    _patch(monkeypatch, _FakeClient(configured=False))
+    await portals._validate_area_path("P", "P\\Whatever")
+
+
+async def test_area_path_skips_on_transient_error(monkeypatch):
+    err = ADOError("boom", status_code=503, retryable=True)
+    _patch(monkeypatch, _FakeClient(raise_exc=err))
+    await portals._validate_area_path("P", "P\\Team")

@@ -60,6 +60,7 @@ export interface Portal {
   category_name: string | null;
   ado_project: string | null;
   work_item_type: string;
+  area_path: string | null;
   fields: FieldDefinition[];
   is_active: boolean;
   created_at: string;
@@ -146,5 +147,11 @@ export interface AdoWorkItemType {
 export interface AdoWorkItemTypesResponse {
   configured: boolean;
   work_item_types: AdoWorkItemType[];
+  error: string | null;
+}
+
+export interface AdoAreaPathsResponse {
+  configured: boolean;
+  area_paths: string[];
   error: string | null;
 }

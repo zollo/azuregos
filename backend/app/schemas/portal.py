@@ -46,6 +46,7 @@ class PortalBase(BaseModel):
     category_id: uuid.UUID | None = None
     ado_project: str | None = None
     work_item_type: str = "Issue"
+    area_path: str | None = None
     fields: list[FieldDefinition] = Field(default_factory=list)
     is_active: bool = True
 
@@ -61,6 +62,7 @@ class PortalUpdate(BaseModel):
     category_id: uuid.UUID | None = None
     ado_project: str | None = None
     work_item_type: str | None = None
+    area_path: str | None = None
     fields: list[FieldDefinition] | None = None
     is_active: bool | None = None
 

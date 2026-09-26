@@ -35,13 +35,25 @@ export default function Catalog() {
             <div className="empty">No portals are available yet. Check back soon.</div>
           )}
           <div className="grid">
-            {groups.map((g) => (
-              <div key={g.category} className="tile" onClick={() => setSelected(g.category)}>
-                <h3>{g.category}</h3>
-                <p>{g.portals.length} request type{g.portals.length === 1 ? "" : "s"}</p>
-                <div className="count">Browse →</div>
-              </div>
-            ))}
+            {groups.map((g) => {
+              const empty = g.portals.length === 0;
+              return (
+                <div
+                  key={g.category}
+                  className={`tile${empty ? " disabled" : ""}`}
+                  onClick={() => !empty && setSelected(g.category)}
+                  aria-disabled={empty}
+                >
+                  <h3>{g.category}</h3>
+                  <p>
+                    {empty
+                      ? "No request types yet"
+                      : `${g.portals.length} request type${g.portals.length === 1 ? "" : "s"}`}
+                  </p>
+                  {!empty && <div className="count">Browse →</div>}
+                </div>
+              );
+            })}
           </div>
         </>
       )}
