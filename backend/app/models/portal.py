@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,8 +22,10 @@ class Portal(UUIDMixin, TimestampMixin, Base):
 
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     slug: Mapped[str] = mapped_column(String(180), unique=True, index=True, nullable=False)
-    description: Mapped[str] = mapped_column(String(1000), default="", nullable=False)
-    icon: Mapped[str] = mapped_column(String(60), default="ticket", nullable=False)
+    # Markdown-capable description shown to end users.
+    description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # Empty => inherit the category's icon (see effective_icon in the API).
+    icon: Mapped[str] = mapped_column(String(60), default="", nullable=False)
 
     category_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True

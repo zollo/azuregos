@@ -25,11 +25,29 @@ from app.services.ado_client import ADOError, get_ado_client
 router = APIRouter(prefix="/portals", tags=["portals"])
 
 GENERAL = "General"
+DEFAULT_CATEGORY_ICON = "folder"
+DEFAULT_PORTAL_ICON = "ticket"
+
+
+def effective_category_icon(category: Category | None) -> str:
+    if category and category.icon:
+        return category.icon
+    return DEFAULT_CATEGORY_ICON
+
+
+def effective_portal_icon(portal: Portal) -> str:
+    """Portal icon, falling back to the category icon, then a default."""
+    if portal.icon:
+        return portal.icon
+    if portal.category and portal.category.icon:
+        return portal.category.icon
+    return DEFAULT_PORTAL_ICON
 
 
 def _to_read(portal: Portal) -> PortalRead:
     data = PortalRead.model_validate(portal)
     data.category_name = portal.category.name if portal.category else GENERAL
+    data.effective_icon = effective_portal_icon(portal)
     return data
 
 
@@ -56,7 +74,8 @@ async def catalog(
     groups: dict[str, dict] = {
         c.name: {
             "category": c.name,
-            "icon": c.icon,
+            "icon": effective_category_icon(c),
+            "description": c.description,
             "sort_order": c.sort_order,
             "portals": [],
         }
@@ -65,14 +84,25 @@ async def catalog(
 
     for p in portals:
         if p.category:
-            name, icon, sort_order = p.category.name, p.category.icon, p.category.sort_order
+            name = p.category.name
+            icon = effective_category_icon(p.category)
+            description = p.category.description
+            sort_order = p.category.sort_order
         else:
-            name, icon, sort_order = GENERAL, "folder", 9999
+            name, icon, description, sort_order = GENERAL, DEFAULT_CATEGORY_ICON, "", 9999
         grp = groups.setdefault(
             name,
-            {"category": name, "icon": icon, "sort_order": sort_order, "portals": []},
+            {
+                "category": name,
+                "icon": icon,
+                "description": description,
+                "sort_order": sort_order,
+                "portals": [],
+            },
         )
-        grp["portals"].append(PortalSummary.model_validate(p).model_dump())
+        summary = PortalSummary.model_validate(p).model_dump()
+        summary["icon"] = effective_portal_icon(p)  # trickle-down applied
+        grp["portals"].append(summary)
 
     ordered = sorted(groups.values(), key=lambda g: (g["sort_order"], g["category"]))
     return ordered

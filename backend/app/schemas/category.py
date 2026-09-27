@@ -9,8 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class CategoryBase(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    description: str = ""
-    icon: str = "folder"
+    description: str = ""  # markdown supported
+    icon: str = ""  # icon name (empty => default)
     sort_order: int = 0
 
 

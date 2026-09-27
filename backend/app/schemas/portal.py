@@ -41,8 +41,8 @@ class FieldDefinition(BaseModel):
 
 class PortalBase(BaseModel):
     name: str = Field(min_length=1, max_length=160)
-    description: str = ""
-    icon: str = "ticket"
+    description: str = ""  # markdown supported
+    icon: str = ""  # icon name; empty => inherit the category icon
     category_id: uuid.UUID | None = None
     ado_project: str | None = None
     work_item_type: str = "Issue"
@@ -73,6 +73,8 @@ class PortalRead(PortalBase):
     id: uuid.UUID
     slug: str
     category_name: str | None = None
+    # Resolved icon after trickle-down (portal icon, else category, else default).
+    effective_icon: str = "ticket"
     created_at: datetime
 
 

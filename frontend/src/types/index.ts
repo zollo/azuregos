@@ -61,6 +61,7 @@ export interface Portal {
   ado_project: string | null;
   work_item_type: string;
   area_path: string | null;
+  effective_icon: string;
   fields: FieldDefinition[];
   is_active: boolean;
   created_at: string;
@@ -78,6 +79,7 @@ export interface PortalSummary {
 export interface CatalogGroup {
   category: string;
   icon: string;
+  description: string;
   sort_order: number;
   portals: PortalSummary[];
 }
