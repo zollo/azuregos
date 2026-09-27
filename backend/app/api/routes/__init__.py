@@ -1,10 +1,11 @@
 """Aggregate all API routers under a single /api router."""
 from fastapi import APIRouter
 
-from app.api.routes import ado, auth, categories, health, portals, tickets, users
+from app.api.routes import ado, auth, build, categories, health, portals, tickets, users
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(health.router)
+api_router.include_router(build.router)
 api_router.include_router(auth.router)
 api_router.include_router(users.router)
 api_router.include_router(categories.router)

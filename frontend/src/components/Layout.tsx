@@ -22,6 +22,7 @@ export default function Layout() {
           <Link to="/tickets">My Tickets</Link>
           {user?.role === "admin" && <Link to="/admin">Admin</Link>}
           {user?.role === "admin" && <Link to="/admin/tickets">Queue</Link>}
+          <Link to="/info">Info</Link>
         </div>
         <div className="spacer" />
         <span className="user">{user?.display_name || user?.email}</span>

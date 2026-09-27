@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Azuregos",
     description="A service-desk front end for Azure DevOps.",
-    version="0.1.0",
+    version=settings.app_version,
     lifespan=lifespan,
 )
 

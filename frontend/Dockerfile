@@ -16,6 +16,13 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 COPY package.json package-lock.json* ./
 RUN npm install
 COPY . .
+# Build metadata baked into the bundle (surfaced on the Info page).
+ARG APP_VERSION=dev
+ARG GIT_COMMIT=unknown
+ARG BUILD_TIME=unknown
+ENV VITE_APP_VERSION=$APP_VERSION \
+    VITE_GIT_COMMIT=$GIT_COMMIT \
+    VITE_BUILD_TIME=$BUILD_TIME
 RUN npm run build
 
 # ── Prod target (static files via nginx) ─────────────────────────────────

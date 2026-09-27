@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     secret_key: str = Field(default="change-me", alias="SECRET_KEY")
     cors_origins: str = Field(default="http://localhost:5173", alias="CORS_ORIGINS")
 
+    # Build metadata (baked into the image at build time)
+    app_version: str = Field(default="dev", alias="AZUREGOS_VERSION")
+    git_commit: str = Field(default="unknown", alias="AZUREGOS_GIT_COMMIT")
+    build_time: str = Field(default="unknown", alias="AZUREGOS_BUILD_TIME")
+
     # Database
     postgres_user: str = Field(default="azuregos", alias="POSTGRES_USER")
     postgres_password: str = Field(default="azuregos", alias="POSTGRES_PASSWORD")

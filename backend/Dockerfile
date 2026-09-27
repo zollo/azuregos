@@ -34,6 +34,14 @@ RUN pip install "." --no-deps
 # Drop privileges
 RUN useradd -m appuser && chown -R appuser /app
 USER appuser
+# Build metadata (set late so it doesn't bust earlier layers). Surfaced via
+# /api/build-info.
+ARG APP_VERSION=dev
+ARG GIT_COMMIT=unknown
+ARG BUILD_TIME=unknown
+ENV AZUREGOS_VERSION=$APP_VERSION \
+    AZUREGOS_GIT_COMMIT=$GIT_COMMIT \
+    AZUREGOS_BUILD_TIME=$BUILD_TIME
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -fsS http://localhost:8000/api/health || exit 1
