@@ -3,6 +3,7 @@ import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthCallback from "./pages/AuthCallback";
 import Catalog from "./pages/Catalog";
+import Info from "./pages/Info";
 import Login from "./pages/Login";
 import MyTickets from "./pages/MyTickets";
 import PortalForm from "./pages/PortalForm";
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/portals/:slug" element={<PortalForm />} />
         <Route path="/tickets" element={<MyTickets />} />
         <Route path="/tickets/:id" element={<TicketDetail />} />
+        <Route path="/info" element={<Info />} />
       </Route>
 
       <Route

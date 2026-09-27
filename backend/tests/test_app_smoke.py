@@ -17,6 +17,7 @@ def test_app_and_openapi_build():
     paths = schema["paths"]
     # A representative sampling of routes across the routers.
     assert "/api/health" in paths
+    assert "/api/build-info" in paths
     assert "/api/portals" in paths
     assert "/api/ado/projects" in paths
     assert "/api/tickets" in paths

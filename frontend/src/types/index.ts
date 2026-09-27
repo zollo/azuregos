@@ -155,3 +155,12 @@ export interface AdoAreaPathsResponse {
   area_paths: string[];
   error: string | null;
 }
+
+export interface BuildInfo {
+  name: string;
+  version: string;
+  git_commit: string;
+  build_time: string;
+  environment: string;
+  ado_configured: boolean;
+}
