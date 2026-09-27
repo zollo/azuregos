@@ -214,6 +214,9 @@ On a **merge to `main`** (after the above pass) two more jobs run:
 4. **version** — computes the next **semantic version** from commit history
    (Conventional Commits: `feat:` → minor, `fix:` → patch, `BREAKING CHANGE`
    → major; default patch), creates the `vX.Y.Z` git tag and a GitHub release.
+   PRs are squash-merged with the **PR title as the commit subject**, so the
+   PR title drives the bump (a `PR Title` check enforces the format — see
+   [CONTRIBUTING.md](CONTRIBUTING.md)).
 5. **images** — builds & pushes both images to GHCR tagged `latest`, `X.Y.Z`,
    `X.Y`, and `sha-<short>`; then **signs** each image with cosign (keyless,
    via GitHub OIDC — recorded in the Rekor transparency log) and generates a
