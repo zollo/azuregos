@@ -138,8 +138,10 @@ services:
       - "${AZUREGOS_PORT:-30080}:80"
     # Explicit healthcheck with a start_period so TrueNAS marks it healthy
     # promptly and the app leaves the "Deploying" state.
+    # Use 127.0.0.1 (not "localhost"): busybox wget may resolve localhost to
+    # ::1 first, but nginx listens on IPv4 only, so the check would fail.
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:80/ || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
