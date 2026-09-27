@@ -23,5 +23,7 @@ FROM nginx:1.27-alpine AS prod
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1
+# Use 127.0.0.1 (not localhost): busybox wget may try ::1 first, but nginx
+# listens on IPv4 only, which would make the check fail spuriously.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD wget -q -O /dev/null http://127.0.0.1:80/ || exit 1
