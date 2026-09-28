@@ -83,7 +83,7 @@ export default function Catalog() {
                   <Icon name={p.icon} size={22} />
                   <h3>{p.name}</h3>
                 </div>
-                <p>{p.description || "Submit a request"}</p>
+                {p.description ? <Markdown>{p.description}</Markdown> : <p>Submit a request</p>}
                 <div className="count">Open form →</div>
               </div>
             ))}

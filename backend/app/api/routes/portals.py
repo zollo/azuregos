@@ -128,14 +128,18 @@ async def list_all_portals(db: AsyncSession = Depends(get_db)) -> list[PortalRea
     return [_to_read(p) for p in result.scalars().all()]
 
 
-async def _unique_slug(db: AsyncSession, name: str) -> str:
+async def _unique_slug(db: AsyncSession, name: str, exclude_id: uuid.UUID | None = None) -> str:
     base = slugify(name)
     slug = base
     i = 2
-    while (await db.execute(select(Portal).where(Portal.slug == slug))).scalar_one_or_none():
+    while True:
+        stmt = select(Portal).where(Portal.slug == slug)
+        if exclude_id is not None:
+            stmt = stmt.where(Portal.id != exclude_id)
+        if (await db.execute(stmt)).scalar_one_or_none() is None:
+            return slug
         slug = f"{base}-{i}"
         i += 1
-    return slug
 
 
 async def _validate_category(db: AsyncSession, category_id: uuid.UUID | None) -> None:
@@ -270,8 +274,8 @@ async def update_portal(
         )
     if "fields" in data and data["fields"] is not None:
         data["fields"] = [f for f in data["fields"]]  # already dicts via model_dump
-    if "name" in data:
-        portal.slug = await _unique_slug(db, data["name"])
+    if "name" in data and data["name"] != portal.name:
+        portal.slug = await _unique_slug(db, data["name"], exclude_id=portal.id)
     for key, value in data.items():
         setattr(portal, key, value)
     await db.commit()

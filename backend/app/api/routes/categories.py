@@ -42,14 +42,18 @@ async def list_categories(db: AsyncSession = Depends(get_db)) -> list[CategoryWi
     return out
 
 
-async def _unique_slug(db: AsyncSession, name: str) -> str:
+async def _unique_slug(db: AsyncSession, name: str, exclude_id: uuid.UUID | None = None) -> str:
     base = slugify(name)
     slug = base
     i = 2
-    while (await db.execute(select(Category).where(Category.slug == slug))).scalar_one_or_none():
+    while True:
+        stmt = select(Category).where(Category.slug == slug)
+        if exclude_id is not None:
+            stmt = stmt.where(Category.id != exclude_id)
+        if (await db.execute(stmt)).scalar_one_or_none() is None:
+            return slug
         slug = f"{base}-{i}"
         i += 1
-    return slug
 
 
 @router.post(
@@ -84,8 +88,9 @@ async def update_category(
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
     data = payload.model_dump(exclude_unset=True)
-    if "name" in data:
-        category.slug = await _unique_slug(db, data["name"])
+    # Only regenerate the slug when the name actually changes.
+    if "name" in data and data["name"] != category.name:
+        category.slug = await _unique_slug(db, data["name"], exclude_id=category.id)
     for key, value in data.items():
         setattr(category, key, value)
     await db.commit()

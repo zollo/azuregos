@@ -17,7 +17,21 @@ def upgrade() -> None:
     op.alter_column("categories", "description", type_=sa.Text(), existing_nullable=False)
     op.alter_column("portals", "description", type_=sa.Text(), existing_nullable=False)
 
+    # Icons: empty now means "inherit/default". Normalize the pre-feature default
+    # values ('folder'/'ticket') to empty so existing portals inherit their
+    # category icon, and flip the column server defaults to ''.
+    op.execute("UPDATE categories SET icon = '' WHERE icon = 'folder'")
+    op.execute("UPDATE portals SET icon = '' WHERE icon = 'ticket'")
+    op.alter_column("categories", "icon", server_default="", existing_type=sa.String(60),
+                    existing_nullable=False)
+    op.alter_column("portals", "icon", server_default="", existing_type=sa.String(60),
+                    existing_nullable=False)
+
 
 def downgrade() -> None:
+    op.alter_column("portals", "icon", server_default="ticket", existing_type=sa.String(60),
+                    existing_nullable=False)
+    op.alter_column("categories", "icon", server_default="folder", existing_type=sa.String(60),
+                    existing_nullable=False)
     op.alter_column("categories", "description", type_=sa.String(500), existing_nullable=False)
     op.alter_column("portals", "description", type_=sa.String(1000), existing_nullable=False)
