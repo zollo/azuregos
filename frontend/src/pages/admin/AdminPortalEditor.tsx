@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
+import IconPicker from "../../components/IconPicker";
+import Markdown from "../../components/Markdown";
 import type {
   AdoAreaPathsResponse,
   AdoProjectsResponse,
@@ -45,6 +47,7 @@ export default function AdminPortalEditor() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [icon, setIcon] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [adoProject, setAdoProject] = useState("");
   const [workItemType, setWorkItemType] = useState("Issue");
@@ -94,6 +97,7 @@ export default function AdminPortalEditor() {
       if (p) {
         setName(p.name);
         setDescription(p.description);
+        setIcon(p.icon || "");
         setCategoryId(p.category_id || "");
         setAdoProject(p.ado_project || "");
         setWorkItemType(p.work_item_type);
@@ -127,6 +131,7 @@ export default function AdminPortalEditor() {
     const payload = {
       name,
       description,
+      icon,
       category_id: categoryId || null,
       ado_project: adoProject || null,
       work_item_type: workItemType,
@@ -168,8 +173,21 @@ export default function AdminPortalEditor() {
             <input value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="field">
+            <label>Icon</label>
+            <IconPicker value={icon} onChange={setIcon} noneLabel="Inherit" />
+            <div className="help">
+              Leave on “Inherit” to use the category’s icon.
+            </div>
+          </div>
+          <div className="field">
             <label>Description</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+            <div className="help">Markdown supported.</div>
+            {description.trim() && (
+              <div className="preview" style={{ marginTop: 8 }}>
+                <Markdown>{description}</Markdown>
+              </div>
+            )}
           </div>
           <div className="row" style={{ gap: 16 }}>
             <div className="field" style={{ flex: 1 }}>

@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import FieldRenderer from "../components/FieldRenderer";
+import Icon from "../components/Icon";
+import Markdown from "../components/Markdown";
 import type { Portal, Ticket } from "../types";
 
 export default function PortalForm() {
@@ -59,8 +61,15 @@ export default function PortalForm() {
       <div className="breadcrumb">
         <Link to="/">Browse</Link> / {portal.category_name} / {portal.name}
       </div>
-      <h1>{portal.name}</h1>
-      <p className="subtitle">{portal.description}</p>
+      <h1 className="title-icon">
+        <Icon name={portal.effective_icon} size={26} />
+        {portal.name}
+      </h1>
+      {portal.description && (
+        <div style={{ marginTop: 8, marginBottom: 20 }}>
+          <Markdown>{portal.description}</Markdown>
+        </div>
+      )}
 
       {error && <div className="alert error">{error}</div>}
 

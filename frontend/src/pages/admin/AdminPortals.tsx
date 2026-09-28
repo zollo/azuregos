@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
+import Icon from "../../components/Icon";
 import type { Portal } from "../../types";
 
 export default function AdminPortals() {
@@ -48,6 +49,7 @@ export default function AdminPortals() {
           <table>
             <thead>
               <tr>
+                <th></th>
                 <th>Name</th>
                 <th>Category</th>
                 <th>Work Item Type</th>
@@ -59,6 +61,7 @@ export default function AdminPortals() {
             <tbody>
               {portals.map((p) => (
                 <tr key={p.id}>
+                  <td><Icon name={p.effective_icon} /></td>
                   <td>
                     <strong>{p.name}</strong>
                     <div className="muted mono">{p.slug}</div>

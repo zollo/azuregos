@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import Icon from "../components/Icon";
+import Markdown from "../components/Markdown";
 import type { CatalogGroup } from "../types";
 
 export default function Catalog() {
@@ -44,7 +46,10 @@ export default function Catalog() {
                   onClick={() => !empty && setSelected(g.category)}
                   aria-disabled={empty}
                 >
-                  <h3>{g.category}</h3>
+                  <div className="tile-head">
+                    <Icon name={g.icon} size={22} />
+                    <h3>{g.category}</h3>
+                  </div>
                   <p>
                     {empty
                       ? "No request types yet"
@@ -66,15 +71,19 @@ export default function Catalog() {
             </a>{" "}
             / {current.category}
           </div>
+          {current.description && (
+            <div style={{ marginBottom: 16 }}>
+              <Markdown>{current.description}</Markdown>
+            </div>
+          )}
           <div className="grid">
             {current.portals.map((p) => (
-              <div
-                key={p.id}
-                className="tile"
-                onClick={() => navigate(`/portals/${p.slug}`)}
-              >
-                <h3>{p.name}</h3>
-                <p>{p.description || "Submit a request"}</p>
+              <div key={p.id} className="tile" onClick={() => navigate(`/portals/${p.slug}`)}>
+                <div className="tile-head">
+                  <Icon name={p.icon} size={22} />
+                  <h3>{p.name}</h3>
+                </div>
+                {p.description ? <Markdown>{p.description}</Markdown> : <p>Submit a request</p>}
                 <div className="count">Open form →</div>
               </div>
             ))}
