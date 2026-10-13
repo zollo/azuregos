@@ -30,3 +30,7 @@ frontend/dist/
 
 # Build
 *.log
+
+# Celery Beat runtime state (written by the worker into the bind-mounted backend/)
+celerybeat-schedule*
+celerybeat.pid
