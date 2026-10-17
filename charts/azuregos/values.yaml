@@ -1,0 +1,241 @@
+# Default values for the Azuregos chart.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # -- Backend image: serves the API and runs the Celery worker and migrations.
+  backend: ghcr.io/zollo/azuregos-backend
+  # -- Frontend image: the React SPA served by nginx.
+  frontend: ghcr.io/zollo/azuregos-frontend
+  # -- Tag for both images. Defaults to the chart appVersion (the release a
+  # published chart was cut from), or "latest" from a source checkout.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# -- Non-secret settings, rendered into a ConfigMap as environment variables
+# (see .env.example). POSTGRES_HOST/PORT/DB/USER and REDIS_URL are set by the
+# chart from the postgresql/redis sections below.
+config:
+  AZUREGOS_ENV: production
+  # Comma-separated browser origins; set to the public URL(s), e.g. https://azuregos.example.com
+  CORS_ORIGINS: ""
+  ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+  JWT_ALGORITHM: HS256
+  # The login form rejects special-use domains such as .local, so use a real-looking one.
+  BOOTSTRAP_ADMIN_EMAIL: admin@example.com
+  ADO_ORG_URL: ""
+  ADO_DEFAULT_PROJECT: ""
+  ADO_RETRY_INTERVAL_SECONDS: "60"
+  ADO_MAX_RETRY_ATTEMPTS: "20"
+  OIDC_ENABLED: "false"
+  OIDC_CLIENT_ID: ""
+  OIDC_DISCOVERY_URL: ""
+  OIDC_REDIRECT_URI: ""
+  SAML_ENABLED: "false"
+  SAML_METADATA_URL: ""
+  SAML_SP_ENTITY_ID: azuregos
+  SAML_ACS_URL: ""
+
+# -- Name of an existing Secret with the sensitive settings. Keys:
+# SECRET_KEY, POSTGRES_PASSWORD (required); BOOTSTRAP_ADMIN_PASSWORD, ADO_PAT,
+# OIDC_CLIENT_SECRET (optional). When empty the chart creates a Secret from
+# `secrets` below.
+existingSecret: ""
+
+# -- Sensitive settings, used only when existingSecret is empty. Prefer an
+# existingSecret created out-of-band so secrets never sit in a values file.
+secrets: {}
+#  SECRET_KEY: "<openssl rand -hex 32>"
+#  POSTGRES_PASSWORD: "<openssl rand -hex 16>"
+#  BOOTSTRAP_ADMIN_PASSWORD: ""
+#  ADO_PAT: ""
+
+backend:
+  replicaCount: 2
+  # -- Run `alembic upgrade head` in an init container before the API starts
+  # (retries while the database comes up).
+  migrate: true
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  readinessProbe:
+    httpGet:
+      path: /api/health/ready
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 15
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+worker:
+  # Always one replica: it also runs Celery beat, which must not double-fire.
+  podAnnotations: {}
+  # -- Celery worker concurrency (processes).
+  concurrency: 2
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+  resources:
+    requests:
+      cpu: 50m
+      memory: 192Mi
+    limits:
+      memory: 512Mi
+  livenessProbe:
+    exec:
+      command: ["sh", "-c", "celery -A app.workers.celery_app.celery_app inspect ping -d celery@$HOSTNAME --timeout 10"]
+    initialDelaySeconds: 60
+    periodSeconds: 120
+    timeoutSeconds: 30
+    failureThreshold: 3
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+frontend:
+  replicaCount: 2
+  podAnnotations: {}
+  # nginx starts as root and drops to the nginx user, so no runAsNonRoot here.
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    periodSeconds: 15
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    periodSeconds: 30
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+service:
+  backendPort: 8000
+  frontendPort: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # -- Hostnames. Each gets /api, /docs, /redoc, /openapi.json -> backend and
+  # everything else -> frontend.
+  hosts:
+    - azuregos.example.com
+  tls: []
+  #  - secretName: azuregos-tls
+  #    hosts: [azuregos.example.com]
+
+# Bundled PostgreSQL (single instance, StatefulSet + PVC). It holds all durable
+# data: portals, users, tickets and the offline cache.
+postgresql:
+  enabled: true
+  image: postgres:16-alpine
+  user: azuregos
+  database: azuregos
+  persistence:
+    # -- StorageClass for the data PVC ("" = cluster default).
+    storageClass: ""
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Nightly pg_dump (custom format) to a separate volume, e.g. an NFS-backed
+  # StorageClass, so a lost node or PVC doesn't lose the data.
+  backup:
+    enabled: false
+    schedule: "15 3 * * *"
+    # -- Number of dumps to keep.
+    keep: 14
+    persistence:
+      # -- Use an existing PVC for the dumps instead of creating one.
+      existingClaim: ""
+      storageClass: ""
+      accessModes: [ReadWriteOnce]
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 256Mi
+
+# Used when postgresql.enabled is false. The password is still read from the
+# Secret (POSTGRES_PASSWORD).
+externalDatabase:
+  host: ""
+  port: 5432
+  user: azuregos
+  database: azuregos
+
+# Bundled Redis: Celery broker/result backend only, no durable data.
+redis:
+  enabled: true
+  image: redis:7-alpine
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 256Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Used when redis.enabled is false.
+externalRedis:
+  url: ""

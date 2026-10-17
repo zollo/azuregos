@@ -155,50 +155,32 @@ and keeps Postgres on a host dataset for snapshots. See
 
 ## Deploying to Kubernetes
 
-Manifests live in `deploy/k8s` (kustomize). They deploy Postgres, Redis, the
-backend (with a migration init-container), the worker, the frontend, and an
-ingress that routes `/api` to the backend and everything else to the SPA. The
-image references point at `ghcr.io/zollo/azuregos-{backend,frontend}`, matching
-what CI publishes.
-
-### 1. Make the GHCR packages public (one-time)
-
-The images are published to GHCR. GHCR packages are **private by default**, so
-after CI first publishes them, set each package's visibility to **Public** so
-the cluster can pull them without credentials:
-
-> github.com/zollo → **Packages** → `azuregos-backend` → **Package settings** →
-> **Danger Zone → Change visibility → Public**. Repeat for `azuregos-frontend`.
-
-Because the packages are public, the deployments need no `imagePullSecrets`. If
-you'd rather keep them private, create a pull secret instead:
+The Helm chart in `charts/azuregos` deploys the backend (with an
+`alembic upgrade head` init container), the worker (Celery + beat, one replica),
+the frontend, Postgres (StatefulSet + PVC), Redis, and an Ingress that sends
+`/api`, `/docs`, `/redoc` and `/openapi.json` to the backend and everything else
+to the SPA. Every release publishes it to GHCR with the same version as the
+images, so a chart version always deploys the matching images:
 
 ```bash
-kubectl create secret docker-registry ghcr-pull \
-  --namespace azuregos \
-  --docker-server=ghcr.io \
-  --docker-username=zollo \
-  --docker-password='<GHCR_PAT_with_read:packages>'
+kubectl create namespace azuregos
+kubectl -n azuregos create secret generic azuregos-secrets \
+  --from-literal=SECRET_KEY="$(openssl rand -hex 32)" \
+  --from-literal=POSTGRES_PASSWORD="$(openssl rand -hex 16)" \
+  --from-literal=BOOTSTRAP_ADMIN_PASSWORD="$(openssl rand -hex 12)" \
+  --from-literal=ADO_PAT='<pat>'
+
+helm install azuregos oci://ghcr.io/zollo/charts/azuregos -n azuregos \
+  --set existingSecret=azuregos-secrets \
+  --set ingress.enabled=true --set ingress.hosts[0]=azuregos.example.com \
+  --set config.CORS_ORIGINS=https://azuregos.example.com \
+  --set config.ADO_ORG_URL=https://dev.azure.com/<org> --set config.ADO_DEFAULT_PROJECT=<project>
 ```
 
-...and add `imagePullSecrets: [{ name: ghcr-pull }]` to each deployment's pod
-spec.
-
-### 2. Deploy
-
-```bash
-# Optionally pin image tags for reproducible rollouts, then apply
-cd deploy/k8s
-kustomize edit set image \
-  ghcr.io/zollo/azuregos-backend=ghcr.io/zollo/azuregos-backend:<tag> \
-  ghcr.io/zollo/azuregos-frontend=ghcr.io/zollo/azuregos-frontend:<tag>
-kubectl apply -k .
-```
-
-Before applying, replace the placeholder values in `config.yaml` (the `Secret`
-especially) using your secrets manager. Because the ingress serves the API and
-SPA on one host, build the frontend image with
-`--build-arg VITE_API_BASE_URL=https://<your-host>`.
+See `charts/azuregos/values.yaml` for everything else: external Postgres/Redis,
+resources, and `postgresql.backup` (a nightly `pg_dump` CronJob to its own PVC,
+e.g. on NFS; restore with `pg_restore --clean --if-exists`). The GHCR packages
+are public, so no pull secret is needed.
 
 ## CI / releases
 
@@ -254,7 +236,7 @@ frontend/           React + Vite SPA
     components/      Layout, guards, field renderer, badges
     context/         auth context
     pages/           catalog, portal form, tickets, admin/*
-deploy/k8s/         Kubernetes manifests (kustomize)
+charts/azuregos/    Helm chart (published to oci://ghcr.io/zollo/charts/azuregos)
 ```
 
 ## License

@@ -76,5 +76,5 @@ The repo is **squash-merge only**, with the squash commit title = PR title, and 
 
 - `docker-compose.yml` (+ dev override) — local/dev; builds images from source.
 - `deploy/truenas/` — TrueNAS SCALE compose using the published GHCR images. Only the frontend port (default 30080) is published, Postgres data lives on a host dataset, and every secret is an env var with an insecure placeholder default.
-- `deploy/k8s/` — kustomize manifests; the backend runs `alembic upgrade head` in an init container.
+- `charts/azuregos/` — Helm chart, published by CI to `oci://ghcr.io/zollo/charts/azuregos` (version = release). The backend runs `alembic upgrade head` in an init container; the worker stays at 1 replica (beat).
 - GHCR packages `ghcr.io/zollo/azuregos-{backend,frontend}` are public (no pull secret needed).

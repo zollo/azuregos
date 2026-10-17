@@ -89,6 +89,20 @@ jobs:
   # afterwards the next version is computed from commit history (Conventional
   # Commits: feat: -> minor, fix: -> patch, BREAKING CHANGE -> major; default
   # patch).
+  chart-lint:
+    name: Helm chart lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+      - name: Lint & render
+        run: |
+          helm lint charts/azuregos --set existingSecret=lint
+          helm template t charts/azuregos --set existingSecret=lint \
+            --set ingress.enabled=true --set postgresql.backup.enabled=true > /dev/null
+
   version:
     name: Version & tag
     runs-on: ubuntu-latest
@@ -213,3 +227,32 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.name }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
+
+  chart:
+    name: Package & publish Helm chart
+    needs: [version, images]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # attach the chart to the GitHub release
+      packages: write        # push the chart to GHCR
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+      - name: Lint
+        run: helm lint charts/azuregos --set existingSecret=lint
+      - name: Package
+        run: helm package charts/azuregos --version "$VERSION" --app-version "$VERSION" --destination dist
+      - name: Push to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
+          helm push "dist/azuregos-${VERSION}.tgz" "oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts"
+      - name: Attach to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "dist/azuregos-${VERSION}.tgz" --clobber

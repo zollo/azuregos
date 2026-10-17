@@ -1,0 +1,91 @@
+{{- if and .Values.postgresql.enabled .Values.postgresql.backup.enabled }}
+{{- $b := .Values.postgresql.backup }}
+{{- if not $b.persistence.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "azuregos.fullname" . }}-backup
+  labels:
+    {{- include "azuregos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    {{- toYaml $b.persistence.accessModes | nindent 4 }}
+  {{- with $b.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $b.persistence.size }}
+---
+{{- end }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "azuregos.fullname" . }}-backup
+  labels:
+    {{- include "azuregos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+spec:
+  schedule: {{ $b.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            {{- include "azuregos.labels" . | nindent 12 }}
+            app.kubernetes.io/component: backup
+        spec:
+          serviceAccountName: {{ include "azuregos.fullname" . }}
+          restartPolicy: OnFailure
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            # pg_dump in custom format (restore: pg_restore --clean --if-exists -d <db> <file>),
+            # written to a temp name and renamed, then old dumps pruned to `keep`.
+            - name: pg-dump
+              image: {{ .Values.postgresql.image | quote }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  f="/backup/{{ .Values.postgresql.database }}-$(date -u +%Y%m%dT%H%M%SZ).dump"
+                  pg_dump -Fc -h "$PGHOST" -U "$PGUSER" -d "$PGDATABASE" -f "$f.partial"
+                  mv "$f.partial" "$f"
+                  ls -1t /backup/*.dump | tail -n +{{ add1 (int $b.keep) }} | xargs -r rm -f
+                  ls -lh /backup
+              env:
+                - name: PGHOST
+                  value: {{ include "azuregos.postgresHost" . | quote }}
+                - name: PGUSER
+                  value: {{ .Values.postgresql.user | quote }}
+                - name: PGDATABASE
+                  value: {{ .Values.postgresql.database | quote }}
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "azuregos.secretName" . }}
+                      key: POSTGRES_PASSWORD
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: [ALL]
+              resources:
+                {{- toYaml $b.resources | nindent 16 }}
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: {{ $b.persistence.existingClaim | default (printf "%s-backup" (include "azuregos.fullname" .)) }}
+{{- end }}
