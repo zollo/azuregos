@@ -58,6 +58,10 @@ spec:
                 - -c
                 - |
                   set -eu
+                  # A new pod can be briefly refused while the CNI's network-policy
+                  # controller catches up (k3s/kube-router), so wait for the server.
+                  for i in $(seq 1 30); do pg_isready -q -h "$PGHOST" && break; sleep 2; done
+                  rm -f /backup/*.partial
                   f="/backup/{{ .Values.postgresql.database }}-$(date -u +%Y%m%dT%H%M%SZ).dump"
                   pg_dump -Fc -h "$PGHOST" -U "$PGUSER" -d "$PGDATABASE" -f "$f.partial"
                   mv "$f.partial" "$f"
