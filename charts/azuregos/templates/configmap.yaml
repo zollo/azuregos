@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "azuregos.fullname" . }}-config
+  labels:
+    {{- include "azuregos.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.config }}
+  {{ $key }}: {{ $value | toString | quote }}
+  {{- end }}
+  POSTGRES_HOST: {{ include "azuregos.postgresHost" . | quote }}
+  POSTGRES_PORT: {{ include "azuregos.postgresPort" . | quote }}
+  POSTGRES_USER: {{ include "azuregos.postgresUser" . | quote }}
+  POSTGRES_DB: {{ include "azuregos.postgresDatabase" . | quote }}
+  REDIS_URL: {{ include "azuregos.redisUrl" . | quote }}

@@ -1,0 +1,13 @@
+Azuregos {{ include "azuregos.tag" . }} is deployed.
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  https://{{ . }}
+{{- end }}
+{{- else }}
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "azuregos.fullname" . }}-frontend 8080:{{ .Values.service.frontendPort }}
+  (the SPA calls /api on the same origin, so use an Ingress for a working setup)
+{{- end }}
+
+First login: {{ .Values.config.BOOTSTRAP_ADMIN_EMAIL }} with BOOTSTRAP_ADMIN_PASSWORD from the
+Secret {{ include "azuregos.secretName" . }} (only created when the database has no such user).
