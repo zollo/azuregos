@@ -8,7 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
-from app.config import settings
 from app.core.utils import slugify
 from app.db import get_db
 from app.models.category import Category
@@ -20,7 +19,8 @@ from app.schemas.portal import (
     PortalSummary,
     PortalUpdate,
 )
-from app.services.ado_client import ADOError, get_ado_client
+from app.services.ado_client import ADOClient, ADOError
+from app.services.ado_connection import get_ado_client
 
 router = APIRouter(prefix="/portals", tags=["portals"])
 
@@ -147,17 +147,18 @@ async def _validate_category(db: AsyncSession, category_id: uuid.UUID | None) ->
         raise HTTPException(status_code=422, detail="Category does not exist")
 
 
-async def _validate_work_item_type(ado_project: str | None, work_item_type: str) -> None:
+async def _validate_work_item_type(
+    client: ADOClient, ado_project: str | None, work_item_type: str
+) -> None:
     """Reject a work-item type that isn't valid for the target ADO project.
 
     Only enforced when we can actually reach ADO and read the project's types:
     if ADO isn't configured, or the lookup fails transiently, the save is
     allowed (a missing project, however, is rejected).
     """
-    client = get_ado_client()
     if not client.configured:
         return
-    project = ado_project or settings.ado_default_project
+    project = ado_project or client.default_project
     if not project:
         return
     try:
@@ -180,7 +181,9 @@ async def _validate_work_item_type(ado_project: str | None, work_item_type: str)
         )
 
 
-async def _validate_area_path(ado_project: str | None, area_path: str | None) -> None:
+async def _validate_area_path(
+    client: ADOClient, ado_project: str | None, area_path: str | None
+) -> None:
     """Reject an area path not present in the target project's synced areas.
 
     No area path (project root) is always valid. Skipped when ADO is
@@ -188,10 +191,9 @@ async def _validate_area_path(ado_project: str | None, area_path: str | None) ->
     """
     if not area_path:
         return
-    client = get_ado_client()
     if not client.configured:
         return
-    project = ado_project or settings.ado_default_project
+    project = ado_project or client.default_project
     if not project:
         return
     try:
@@ -222,9 +224,10 @@ async def create_portal(
     admin: User = Depends(get_current_admin),
 ) -> PortalRead:
     await _validate_category(db, payload.category_id)
-    await _validate_work_item_type(payload.ado_project, payload.work_item_type)
+    ado = await get_ado_client(db)
+    await _validate_work_item_type(ado, payload.ado_project, payload.work_item_type)
     area_path = payload.area_path or None
-    await _validate_area_path(payload.ado_project, area_path)
+    await _validate_area_path(ado, payload.ado_project, area_path)
     portal = Portal(
         name=payload.name,
         slug=await _unique_slug(db, payload.name),
@@ -258,9 +261,11 @@ async def update_portal(
     data = payload.model_dump(exclude_unset=True)
     if "category_id" in data:
         await _validate_category(db, data["category_id"])
+    ado = await get_ado_client(db)
     # Validate the effective project/type if either is changing.
     if "work_item_type" in data or "ado_project" in data:
         await _validate_work_item_type(
+            ado,
             data.get("ado_project", portal.ado_project),
             data.get("work_item_type", portal.work_item_type),
         )
@@ -269,6 +274,7 @@ async def update_portal(
         data["area_path"] = data["area_path"] or None
     if "area_path" in data or "ado_project" in data:
         await _validate_area_path(
+            ado,
             data.get("ado_project", portal.ado_project),
             data.get("area_path", portal.area_path),
         )

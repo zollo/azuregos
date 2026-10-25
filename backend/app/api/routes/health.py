@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import get_db
-from app.services.ado_client import get_ado_client
+from app.services.ado_connection import resolve_connection
 
 router = APIRouter(tags=["health"])
 
@@ -22,13 +22,15 @@ async def health() -> dict:
 async def readiness(db: AsyncSession = Depends(get_db)) -> dict:
     """Readiness — checks the DB and reports ADO configuration."""
     db_ok = True
+    ado_configured = False
     try:
         await db.execute(text("SELECT 1"))
+        ado_configured = (await resolve_connection(db)).configured
     except Exception:
         db_ok = False
     return {
         "database": db_ok,
-        "ado_configured": get_ado_client().configured,
+        "ado_configured": ado_configured,
         "oidc_enabled": settings.oidc_enabled,
         "saml_enabled": settings.saml_enabled,
     }

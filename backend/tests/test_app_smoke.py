@@ -20,4 +20,5 @@ def test_app_and_openapi_build():
     assert "/api/build-info" in paths
     assert "/api/portals" in paths
     assert "/api/ado/projects" in paths
+    assert "/api/ado/connection" in paths
     assert "/api/tickets" in paths

@@ -29,73 +29,69 @@ class _FakeClient:
         return self._areas
 
 
-def _patch(monkeypatch, client):
-    monkeypatch.setattr(portals, "get_ado_client", lambda: client)
-
-
-async def test_skips_when_ado_not_configured(monkeypatch):
-    _patch(monkeypatch, _FakeClient(configured=False))
+async def test_skips_when_ado_not_configured():
+    client = _FakeClient(configured=False)
     # Should not raise even though the type is nonsense.
-    await portals._validate_work_item_type("P", "Nonexistent")
+    await portals._validate_work_item_type(client, "P", "Nonexistent")
 
 
-async def test_accepts_valid_type(monkeypatch):
-    _patch(monkeypatch, _FakeClient(types=[{"name": "Issue"}, {"name": "Bug"}]))
-    await portals._validate_work_item_type("P", "Issue")
+async def test_accepts_valid_type():
+    client = _FakeClient(types=[{"name": "Issue"}, {"name": "Bug"}])
+    await portals._validate_work_item_type(client, "P", "Issue")
 
 
-async def test_rejects_invalid_type(monkeypatch):
-    _patch(monkeypatch, _FakeClient(types=[{"name": "Issue"}, {"name": "Bug"}]))
+async def test_rejects_invalid_type():
+    client = _FakeClient(types=[{"name": "Issue"}, {"name": "Bug"}])
     with pytest.raises(HTTPException) as exc:
-        await portals._validate_work_item_type("P", "Epic")
+        await portals._validate_work_item_type(client, "P", "Epic")
     assert exc.value.status_code == 422
     assert "Epic" in exc.value.detail
     assert "Issue" in exc.value.detail  # lists the valid options
 
 
-async def test_rejects_missing_project(monkeypatch):
+async def test_rejects_missing_project():
     err = ADOError("not found", status_code=404, retryable=False)
-    _patch(monkeypatch, _FakeClient(raise_exc=err))
+    client = _FakeClient(raise_exc=err)
     with pytest.raises(HTTPException) as exc:
-        await portals._validate_work_item_type("Ghost", "Issue")
+        await portals._validate_work_item_type(client, "Ghost", "Issue")
     assert exc.value.status_code == 422
     assert "Ghost" in exc.value.detail
 
 
-async def test_skips_on_transient_ado_error(monkeypatch):
+async def test_skips_on_transient_ado_error():
     err = ADOError("boom", status_code=503, retryable=True)
-    _patch(monkeypatch, _FakeClient(raise_exc=err))
+    client = _FakeClient(raise_exc=err)
     # Transient error must not block the save.
-    await portals._validate_work_item_type("P", "AnythingGoesNow")
+    await portals._validate_work_item_type(client, "P", "AnythingGoesNow")
 
 
 # ── Area path validation ──────────────────────────────────────────────────
-async def test_area_path_blank_is_allowed(monkeypatch):
+async def test_area_path_blank_is_allowed():
     # Not configured / no lookup needed; project root is always valid.
-    _patch(monkeypatch, _FakeClient(areas=[]))
-    await portals._validate_area_path("P", None)
-    await portals._validate_area_path("P", "")
+    client = _FakeClient(areas=[])
+    await portals._validate_area_path(client, "P", None)
+    await portals._validate_area_path(client, "P", "")
 
 
-async def test_area_path_valid(monkeypatch):
-    _patch(monkeypatch, _FakeClient(areas=["P", "P\\Team", "P\\Team\\Sub"]))
-    await portals._validate_area_path("P", "P\\Team\\Sub")
+async def test_area_path_valid():
+    client = _FakeClient(areas=["P", "P\\Team", "P\\Team\\Sub"])
+    await portals._validate_area_path(client, "P", "P\\Team\\Sub")
 
 
-async def test_area_path_invalid_rejected(monkeypatch):
-    _patch(monkeypatch, _FakeClient(areas=["P", "P\\Team"]))
+async def test_area_path_invalid_rejected():
+    client = _FakeClient(areas=["P", "P\\Team"])
     with pytest.raises(HTTPException) as exc:
-        await portals._validate_area_path("P", "P\\Nope")
+        await portals._validate_area_path(client, "P", "P\\Nope")
     assert exc.value.status_code == 422
     assert "P\\Nope" in exc.value.detail
 
 
-async def test_area_path_skips_when_not_configured(monkeypatch):
-    _patch(monkeypatch, _FakeClient(configured=False))
-    await portals._validate_area_path("P", "P\\Whatever")
+async def test_area_path_skips_when_not_configured():
+    client = _FakeClient(configured=False)
+    await portals._validate_area_path(client, "P", "P\\Whatever")
 
 
-async def test_area_path_skips_on_transient_error(monkeypatch):
+async def test_area_path_skips_on_transient_error():
     err = ADOError("boom", status_code=503, retryable=True)
-    _patch(monkeypatch, _FakeClient(raise_exc=err))
-    await portals._validate_area_path("P", "P\\Team")
+    client = _FakeClient(raise_exc=err)
+    await portals._validate_area_path(client, "P", "P\\Team")

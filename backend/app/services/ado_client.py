@@ -21,6 +21,7 @@ from __future__ import annotations
 import base64
 import json
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -56,9 +57,13 @@ class ADOClient:
         pat: str | None = None,
         default_project: str | None = None,
     ):
-        self.org_url = (org_url or settings.ado_org_url).rstrip("/")
-        self.pat = pat or settings.ado_pat
-        self.default_project = default_project or settings.ado_default_project
+        # ``None`` means "use the env var"; an explicit "" is kept as-is so a
+        # saved connection is never mixed with env values.
+        self.org_url = (settings.ado_org_url if org_url is None else org_url).rstrip("/")
+        self.pat = settings.ado_pat if pat is None else pat
+        self.default_project = (
+            settings.ado_default_project if default_project is None else default_project
+        )
 
     @property
     def configured(self) -> bool:
@@ -72,6 +77,14 @@ class ADOClient:
 
     @staticmethod
     def _raise_for_status(resp: httpx.Response) -> None:
+        # A bad/expired PAT often gets a 203 with an HTML sign-in page rather
+        # than a 401; treat it as the auth failure it is.
+        if resp.status_code == 203:
+            raise ADOError(
+                "ADO 203: authentication failed (check the PAT)",
+                status_code=401,
+                retryable=False,
+            )
         if resp.is_success:
             return
         # 4xx (except 429) are usually permanent: bad field, bad project, auth.
@@ -163,7 +176,29 @@ class ADOClient:
         except httpx.RequestError as exc:
             raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
         self._raise_for_status(resp)
-        return resp.json().get("value", [])
+        # Validate the shape: a wrong URL can answer 200 with HTML or other
+        # JSON, which must not pass as "an org with no projects".
+        try:
+            projects = resp.json().get("value")
+        except (ValueError, AttributeError):
+            projects = None
+        if not isinstance(projects, list):
+            raise ADOError(
+                "Unexpected response: this doesn't look like an Azure DevOps organization URL",
+                retryable=False,
+            )
+        return projects
+
+    async def get_project(self, project: str) -> dict[str, Any]:
+        """A single project by name or ID (404 ``ADOError`` if it doesn't exist)."""
+        url = f"{self.org_url}/_apis/projects/{quote(project, safe='')}?api-version={API_VERSION}"
+        try:
+            async with self._client() as client:
+                resp = await client.get(url)
+        except httpx.RequestError as exc:
+            raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
+        self._raise_for_status(resp)
+        return resp.json()
 
     async def list_work_item_types(self, project: str) -> list[dict[str, Any]]:
         """List a project's work-item types (for portal configuration)."""
@@ -269,7 +304,3 @@ def _flatten_area_paths(node: dict[str, Any]) -> list[str]:
     for child in node.get("children", []):
         paths.extend(_flatten_area_paths(child))
     return paths
-
-
-def get_ado_client() -> ADOClient:
-    return ADOClient()

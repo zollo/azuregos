@@ -21,7 +21,8 @@ from app.schemas.ticket import (
     TicketRead,
 )
 from app.services import ticket_service
-from app.services.ado_client import ADOError, get_ado_client
+from app.services.ado_client import ADOError
+from app.services.ado_connection import get_ado_client
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
@@ -73,7 +74,7 @@ async def get_ticket(
 
     # Optionally pull the latest state (e.g. status) from ADO.
     if refresh and ticket.ado_work_item_id:
-        ado = get_ado_client()
+        ado = await get_ado_client(db)
         if ado.configured:
             try:
                 wi = await ado.get_work_item(ticket.ado_work_item_id)
@@ -139,7 +140,7 @@ async def list_ticket_comments(
     ticket = await _get_owned_ticket(ticket_id, db, user)
     if not ticket.ado_work_item_id:
         return []
-    ado = get_ado_client()
+    ado = await get_ado_client(db)
     if not ado.configured:
         return []
     project = ticket.portal.ado_project or ado.default_project
@@ -172,7 +173,7 @@ async def add_ticket_comment(
             status_code=409,
             detail="This ticket hasn't been submitted to the service desk yet.",
         )
-    ado = get_ado_client()
+    ado = await get_ado_client(db)
     if not ado.configured:
         raise HTTPException(status_code=503, detail="Azure DevOps is not configured")
 

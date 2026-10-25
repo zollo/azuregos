@@ -22,8 +22,8 @@ from app.services.ado_client import (
     TAG_SUBMITTER_PREFIX,
     ADOClient,
     ADOError,
-    get_ado_client,
 )
+from app.services.ado_connection import get_ado_client
 
 
 class TicketValidationError(Exception):
@@ -145,7 +145,7 @@ async def push_ticket_to_ado(
         await db.commit()
         return ticket
 
-    ado = ado or get_ado_client()
+    ado = ado or await get_ado_client(db)
     if portal is None:
         portal = await db.get(Portal, ticket.portal_id)
     assert portal is not None
@@ -163,7 +163,7 @@ async def push_ticket_to_ado(
 
     try:
         work_item = await ado.create_work_item(
-            project=portal.ado_project or settings.ado_default_project,
+            project=portal.ado_project or ado.default_project,
             work_item_type=portal.work_item_type,
             title=ticket.title,
             description=build_description(portal, ticket),

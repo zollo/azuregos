@@ -11,3 +11,5 @@ class BuildInfo(BaseModel):
     build_time: str
     environment: str
     ado_configured: bool
+    # Where the ADO connection comes from: "database", "environment" or "none".
+    ado_source: str = "none"
