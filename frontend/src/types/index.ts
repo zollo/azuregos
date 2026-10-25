@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "end_user";
+export type UserRole = "super_admin" | "admin" | "portal_admin" | "end_user";
 export type AuthProvider = "local" | "oidc" | "saml";
 
 export interface User {
@@ -9,6 +9,8 @@ export interface User {
   provider: AuthProvider;
   is_active: boolean;
   created_at: string;
+  /** Portals a portal admin may edit (empty for other roles). */
+  portal_ids: string[];
 }
 
 export interface Token {

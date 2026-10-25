@@ -18,7 +18,7 @@ logger = logging.getLogger("azuregos")
 
 
 async def _bootstrap_admin() -> None:
-    """Create the initial admin account if it does not exist yet."""
+    """Create the initial super admin account if it does not exist yet."""
     async with AsyncSessionLocal() as db:
         existing = await user_service.get_by_email(db, settings.bootstrap_admin_email)
         if existing:
@@ -28,7 +28,7 @@ async def _bootstrap_admin() -> None:
             email=settings.bootstrap_admin_email,
             password=settings.bootstrap_admin_password,
             display_name="Administrator",
-            role=UserRole.admin,
+            role=UserRole.super_admin,
         )
         logger.info("Bootstrapped admin user %s", settings.bootstrap_admin_email)
 

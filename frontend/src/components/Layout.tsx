@@ -1,4 +1,5 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
+import { isStaff } from "../auth/roles";
 import { useAuth } from "../context/AuthContext";
 import ThemeToggle from "./ThemeToggle";
 
@@ -20,8 +21,8 @@ export default function Layout() {
         <div className="links">
           <Link to="/">Browse</Link>
           <Link to="/tickets">My Tickets</Link>
-          {user?.role === "admin" && <Link to="/admin">Admin</Link>}
-          {user?.role === "admin" && <Link to="/admin/tickets">Queue</Link>}
+          {isStaff(user) && <Link to="/admin">Admin</Link>}
+          {isStaff(user) && <Link to="/admin/tickets">Queue</Link>}
           <Link to="/info">Info</Link>
         </div>
         <div className="spacer" />

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user
+from app.api.deps import get_current_staff, get_current_user
 from app.core.utils import html_to_text, text_to_html
 from app.db import get_db
 from app.models.portal import Portal
@@ -25,6 +25,16 @@ from app.services.ado_client import ADOError
 from app.services.ado_connection import get_ado_client
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
+
+
+async def _get_owned_ticket(ticket_id: uuid.UUID, db: AsyncSession, user: User) -> Ticket:
+    """A ticket the caller submitted, or one in a portal they administer."""
+    ticket = await db.get(Ticket, ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    if ticket.submitted_by_id != user.id and not user.can_manage_portal(ticket.portal_id):
+        raise HTTPException(status_code=403, detail="Not your ticket")
+    return ticket
 
 
 @router.post("", response_model=TicketRead, status_code=status.HTTP_201_CREATED)
@@ -51,10 +61,13 @@ async def list_my_tickets(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[Ticket]:
-    """List the caller's tickets. Admins may pass ?all_tickets=true for every ticket."""
+    """List the caller's tickets. With ?all_tickets=true admins get every ticket
+    and portal admins every ticket in their portals."""
     stmt = select(Ticket).order_by(Ticket.created_at.desc())
-    if not (all_tickets and user.is_admin):
+    if not (all_tickets and user.is_staff):
         stmt = stmt.where(Ticket.submitted_by_id == user.id)
+    elif not user.is_admin:
+        stmt = stmt.where(Ticket.portal_id.in_(user.portal_ids))
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -66,11 +79,7 @@ async def get_ticket(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Ticket:
-    ticket = await db.get(Ticket, ticket_id)
-    if ticket is None:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    if ticket.submitted_by_id != user.id and not user.is_admin:
-        raise HTTPException(status_code=403, detail="Not your ticket")
+    ticket = await _get_owned_ticket(ticket_id, db, user)
 
     # Optionally pull the latest state (e.g. status) from ADO.
     if refresh and ticket.ado_work_item_id:
@@ -86,16 +95,19 @@ async def get_ticket(
     return ticket
 
 
-@router.post(
-    "/{ticket_id}/retry",
-    response_model=TicketRead,
-    dependencies=[Depends(get_current_admin)],
-)
-async def retry_ticket(ticket_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> Ticket:
-    """Force an immediate re-sync of a pending/failed ticket (admin)."""
+@router.post("/{ticket_id}/retry", response_model=TicketRead)
+async def retry_ticket(
+    ticket_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_staff),
+) -> Ticket:
+    """Force an immediate re-sync of a pending/failed ticket (admin, or an
+    admin of the ticket's portal)."""
     ticket = await db.get(Ticket, ticket_id)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
+    if not user.can_manage_portal(ticket.portal_id):
+        raise HTTPException(status_code=403, detail="You aren't an admin of this portal")
     if ticket.sync_status == SyncStatus.synced:
         return ticket
     # Reset failed state so it is eligible again, then try now.
@@ -110,15 +122,6 @@ async def retry_ticket(ticket_id: uuid.UUID, db: AsyncSession = Depends(get_db))
 
 
 # ── Discussion / comments ────────────────────────────────────────────────
-async def _get_owned_ticket(ticket_id: uuid.UUID, db: AsyncSession, user: User) -> Ticket:
-    ticket = await db.get(Ticket, ticket_id)
-    if ticket is None:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    if ticket.submitted_by_id != user.id and not user.is_admin:
-        raise HTTPException(status_code=403, detail="Not your ticket")
-    return ticket
-
-
 def _to_comment(raw: dict) -> TicketComment:
     author = raw.get("createdBy") or {}
     return TicketComment(

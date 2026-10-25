@@ -1,12 +1,17 @@
 """Azure DevOps admin endpoints: the connection settings and the metadata
-pickers (projects / work-item types / area paths) used by the portal editor."""
+pickers (projects / work-item types / area paths) used by the portal editor.
+
+The connection is super-admin only: its PAT is the identity every ticket and
+reply is posted under, and switching it affects every portal. The pickers are
+open to anyone who can edit a portal, portal admins included.
+"""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_staff, get_current_super_admin
 from app.core.security import encrypt_secret
 from app.db import get_db
 from app.models.ado_connection import SINGLETON_ID, AdoConnection
@@ -28,7 +33,7 @@ from app.services.ado_connection import (
     stored_connection,
 )
 
-router = APIRouter(prefix="/ado", tags=["ado"], dependencies=[Depends(get_current_admin)])
+router = APIRouter(prefix="/ado", tags=["ado"], dependencies=[Depends(get_current_staff)])
 
 
 # ── Connection settings ───────────────────────────────────────────────────
@@ -121,13 +126,21 @@ async def _guard_org_switch(db: AsyncSession, new_org_url: str) -> None:
         )
 
 
-@router.get("/connection", response_model=AdoConnectionStatus)
+@router.get(
+    "/connection",
+    response_model=AdoConnectionStatus,
+    dependencies=[Depends(get_current_super_admin)],
+)
 async def get_connection(db: AsyncSession = Depends(get_db)) -> AdoConnectionStatus:
     """Which connection is in effect, plus the saved and env values (no PATs)."""
     return await _connection_status(db)
 
 
-@router.post("/connection/test", response_model=AdoConnectionTestResult)
+@router.post(
+    "/connection/test",
+    response_model=AdoConnectionTestResult,
+    dependencies=[Depends(get_current_super_admin)],
+)
 async def test_connection(
     payload: AdoConnectionWrite, db: AsyncSession = Depends(get_db)
 ) -> AdoConnectionTestResult:
@@ -145,7 +158,7 @@ async def test_connection(
 async def save_connection(
     payload: AdoConnectionWrite,
     db: AsyncSession = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_super_admin),
 ) -> AdoConnectionStatus:
     """Save the UI connection; it then takes precedence over the ADO_* env vars.
 
@@ -177,7 +190,11 @@ async def save_connection(
     return await _connection_status(db)
 
 
-@router.delete("/connection", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/connection",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_super_admin)],
+)
 async def delete_connection(db: AsyncSession = Depends(get_db)):
     """Remove the saved connection, reverting to the ADO_* env vars."""
     row = await get_stored_connection(db)
