@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
@@ -119,8 +119,16 @@ async def set_portal_assignments(
 
 
 async def count_active_super_admins(db: AsyncSession) -> int:
-    return await db.scalar(
-        select(func.count())
-        .select_from(User)
+    """Count active super admins, locking their rows until the caller commits.
+
+    The lock serializes concurrent demotions/deletions: with two super admins,
+    two requests removing one each would otherwise both count two and leave
+    none. Rows are locked in id order so the requests can't deadlock.
+    """
+    result = await db.execute(
+        select(User.id)
         .where(User.role == UserRole.super_admin, User.is_active.is_(True))
-    ) or 0
+        .order_by(User.id)
+        .with_for_update()
+    )
+    return len(result.all())
