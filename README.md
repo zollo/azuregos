@@ -80,10 +80,25 @@ Sign in with the bootstrap admin from `.env`
 
 ### Configure Azure DevOps
 
-Edit `.env` and set `ADO_ORG_URL`, `ADO_PAT`, and `ADO_DEFAULT_PROJECT`. Until
-these are set, submissions are cached locally and marked *Queued*; once ADO is
-reachable the worker pushes them automatically (retry every
-`ADO_RETRY_INTERVAL_SECONDS`).
+There are two ways to connect Azure DevOps:
+
+- **Environment variables:** set `ADO_ORG_URL`, `ADO_PAT`, and
+  `ADO_DEFAULT_PROJECT` in `.env` (or your Helm values / TrueNAS env).
+- **Admin UI:** sign in as an admin and open **Admin → Azure DevOps**. Enter the
+  organization URL, a PAT, and an optional default project, use **Test
+  connection**, then **Save**. The values are checked against ADO before saving
+  and the PAT is stored encrypted (derived from `SECRET_KEY`); it is never
+  shown again.
+
+**Precedence:** a connection saved in the UI wins over the env vars and
+replaces them as a whole (they're never mixed field by field). **Remove saved
+connection** reverts to the env vars. Changes apply immediately to the API and
+the worker, no restart needed. Rotating `SECRET_KEY` makes a saved PAT
+unreadable: the page then shows an error and the PAT must be re-entered.
+
+Until a connection is configured, submissions are cached locally and marked
+*Queued*; once ADO is reachable the worker pushes them automatically (retry
+every `ADO_RETRY_INTERVAL_SECONDS`).
 
 ## Local development without Docker
 

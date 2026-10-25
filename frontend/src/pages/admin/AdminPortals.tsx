@@ -36,6 +36,7 @@ export default function AdminPortals() {
           <Link className="btn secondary" to="/admin/tickets">Queue</Link>
           <Link className="btn secondary" to="/admin/categories">Categories</Link>
           <Link className="btn secondary" to="/admin/users">Users</Link>
+          <Link className="btn secondary" to="/admin/ado">Azure DevOps</Link>
           <Link className="btn" to="/admin/portals/new">+ New Portal</Link>
         </div>
       </div>

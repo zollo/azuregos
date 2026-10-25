@@ -9,6 +9,7 @@ import MyTickets from "./pages/MyTickets";
 import PortalForm from "./pages/PortalForm";
 import Register from "./pages/Register";
 import TicketDetail from "./pages/TicketDetail";
+import AdminAdoConnection from "./pages/admin/AdminAdoConnection";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPortalEditor from "./pages/admin/AdminPortalEditor";
 import AdminPortals from "./pages/admin/AdminPortals";
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="/admin/portals/:id" element={<AdminPortalEditor />} />
         <Route path="/admin/categories" element={<AdminCategories />} />
         <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/ado" element={<AdminAdoConnection />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -158,6 +158,33 @@ export interface AdoAreaPathsResponse {
   error: string | null;
 }
 
+export type AdoConnectionSource = "database" | "environment" | "none";
+
+export interface AdoConnectionValues {
+  org_url: string;
+  default_project: string;
+  pat_set: boolean;
+}
+
+export interface AdoStoredConnection extends AdoConnectionValues {
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface AdoConnectionStatus {
+  source: AdoConnectionSource;
+  configured: boolean;
+  stored: AdoStoredConnection | null;
+  environment: AdoConnectionValues;
+  error: string | null;
+}
+
+export interface AdoConnectionTestResult {
+  ok: boolean;
+  project_count: number;
+  error: string | null;
+}
+
 export interface BuildInfo {
   name: string;
   version: string;
@@ -165,4 +192,5 @@ export interface BuildInfo {
   build_time: string;
   environment: string;
   ado_configured: boolean;
+  ado_source?: AdoConnectionSource;
 }

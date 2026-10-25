@@ -10,6 +10,7 @@ from app.config import settings
 from app.db import create_worker_engine
 from app.models.ticket import SyncStatus, Ticket
 from app.services.ado_client import ADOError
+from app.services.ado_connection import get_ado_client
 from app.services.ticket_service import push_ticket_to_ado
 from app.workers.celery_app import celery_app
 
@@ -23,9 +24,11 @@ async def _drain() -> dict:
     try:
         async with session_factory() as db:
             tickets = await _drain_session(db)
+            # Resolve the connection once per cycle (it may be UI-configured).
+            ado = await get_ado_client(db) if tickets else None
             for ticket in tickets:
                 try:
-                    await push_ticket_to_ado(db, ticket)
+                    await push_ticket_to_ado(db, ticket, ado=ado)
                     pushed += 1
                 except ADOError as exc:
                     failed += 1

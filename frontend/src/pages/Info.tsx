@@ -78,6 +78,11 @@ export default function Info() {
             <span className={`badge ${backend.ado_configured ? "synced" : "pending"}`}>
               {backend.ado_configured ? "Configured" : "Not configured"}
             </span>
+            {backend.ado_configured && backend.ado_source && (
+              <span className="muted" style={{ marginLeft: 8 }}>
+                {backend.ado_source === "database" ? "via admin settings" : "via environment"}
+              </span>
+            )}
           </Row>
         </div>
       ) : null}

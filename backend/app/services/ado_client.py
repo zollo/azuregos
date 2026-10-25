@@ -56,9 +56,13 @@ class ADOClient:
         pat: str | None = None,
         default_project: str | None = None,
     ):
-        self.org_url = (org_url or settings.ado_org_url).rstrip("/")
-        self.pat = pat or settings.ado_pat
-        self.default_project = default_project or settings.ado_default_project
+        # ``None`` means "use the env var"; an explicit "" is kept as-is so a
+        # saved connection is never mixed with env values.
+        self.org_url = (settings.ado_org_url if org_url is None else org_url).rstrip("/")
+        self.pat = settings.ado_pat if pat is None else pat
+        self.default_project = (
+            settings.ado_default_project if default_project is None else default_project
+        )
 
     @property
     def configured(self) -> bool:
@@ -72,6 +76,14 @@ class ADOClient:
 
     @staticmethod
     def _raise_for_status(resp: httpx.Response) -> None:
+        # A bad/expired PAT often gets a 203 with an HTML sign-in page rather
+        # than a 401; treat it as the auth failure it is.
+        if resp.status_code == 203:
+            raise ADOError(
+                "ADO 203: authentication failed (check the PAT)",
+                status_code=401,
+                retryable=False,
+            )
         if resp.is_success:
             return
         # 4xx (except 429) are usually permanent: bad field, bad project, auth.
@@ -269,7 +281,3 @@ def _flatten_area_paths(node: dict[str, Any]) -> list[str]:
     for child in node.get("children", []):
         paths.extend(_flatten_area_paths(child))
     return paths
-
-
-def get_ado_client() -> ADOClient:
-    return ADOClient()

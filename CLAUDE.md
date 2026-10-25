@@ -41,6 +41,8 @@ The primary dev box (WSL) has no `pip`, `node`, or `docker`, so local checks are
 
 **Ticket lifecycle / offline cache** (`services/ticket_service.py`, `workers/tasks.py`): a submission is always persisted to the `tickets` table first, then pushed to ADO best-effort. If the push fails the row stays `pending` and the beat-scheduled `retry_pending_tickets` task retries it every `ADO_RETRY_INTERVAL_SECONDS`. `SyncStatus`: `pending → syncing → synced`, or `failed` once a non-retryable error (4xx other than 429) occurs or `ADO_MAX_RETRY_ATTEMPTS` is hit. The `tickets` table *is* the offline cache.
 
+**ADO connection** (`services/ado_connection.py`): either the `ADO_*` env vars or a connection an admin saves at `/admin/ado` (singleton `ado_connection` row, PAT Fernet-encrypted with a key derived from `SECRET_KEY`). A saved connection wins and replaces the env vars as a whole; deleting it reverts. It's read per call, so always get a client via `await get_ado_client(db)` and use `client.default_project`, never `settings.ado_*` directly.
+
 **ADO integration** (`services/ado_client.py`): thin httpx client over REST 7.1 with PAT Basic auth; `ADOError.retryable` drives the retry loop. Azuregos metadata lives in ADO **tags**, not custom fields: `azuregos`, `azuregos-portal:<slug>`, `azuregos-submitter:<email>` (lets "my tickets" be recovered via WIQL). Notable conversions:
 - Area paths: classification nodes come back as `\Proj\Area\Team`; `System.AreaPath` wants `Proj\Team` (`area_node_to_path`).
 - Discussion uses the comments **preview** API (`7.1-preview.4`). Replies are posted under the PAT identity, so the API prepends a `Name (email) via Azuregos:` attribution. ADO HTML is converted to plain text (`html_to_text`) before reaching the UI.
