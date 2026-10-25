@@ -37,19 +37,38 @@ export default function App() {
         <Route path="/info" element={<Info />} />
       </Route>
 
+      {/* Portal admins: their assigned portals and those portals' tickets. */}
       <Route
         element={
-          <ProtectedRoute adminOnly>
+          <ProtectedRoute access="staff">
             <Layout />
           </ProtectedRoute>
         }
       >
         <Route path="/admin" element={<AdminPortals />} />
         <Route path="/admin/tickets" element={<AdminTickets />} />
-        <Route path="/admin/portals/new" element={<AdminPortalEditor />} />
         <Route path="/admin/portals/:id" element={<AdminPortalEditor />} />
+      </Route>
+
+      <Route
+        element={
+          <ProtectedRoute access="admin">
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/admin/portals/new" element={<AdminPortalEditor />} />
         <Route path="/admin/categories" element={<AdminCategories />} />
         <Route path="/admin/users" element={<AdminUsers />} />
+      </Route>
+
+      <Route
+        element={
+          <ProtectedRoute access="super_admin">
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="/admin/ado" element={<AdminAdoConnection />} />
       </Route>
 

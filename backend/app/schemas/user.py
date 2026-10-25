@@ -17,6 +17,8 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=128)
+    # Portals a portal admin may edit; ignored for other roles.
+    portal_ids: list[uuid.UUID] = []
 
 
 class UserRead(UserBase):
@@ -26,6 +28,7 @@ class UserRead(UserBase):
     provider: AuthProvider
     is_active: bool
     created_at: datetime
+    portal_ids: list[uuid.UUID] = []
 
 
 class UserUpdate(BaseModel):
@@ -33,6 +36,7 @@ class UserUpdate(BaseModel):
     role: UserRole | None = None
     is_active: bool | None = None
     password: str | None = Field(default=None, min_length=8, max_length=128)
+    portal_ids: list[uuid.UUID] | None = None
 
 
 class LoginRequest(BaseModel):

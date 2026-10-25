@@ -1,11 +1,14 @@
 """User lookups, local authentication, and federated upsert."""
 from __future__ import annotations
 
-from sqlalchemy import select
+import uuid
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
-from app.models.user import AuthProvider, User, UserRole
+from app.models.portal import Portal
+from app.models.user import AuthProvider, PortalAdmin, User, UserRole
 
 
 async def get_by_email(db: AsyncSession, email: str) -> User | None:
@@ -79,3 +82,45 @@ async def upsert_federated_user(
     await db.commit()
     await db.refresh(user)
     return user
+
+
+class UnknownPortalError(ValueError):
+    pass
+
+
+async def ensure_portals_exist(db: AsyncSession, portal_ids: set[uuid.UUID]) -> None:
+    if not portal_ids:
+        return
+    found = set((await db.execute(select(Portal.id).where(Portal.id.in_(portal_ids)))).scalars())
+    if missing := portal_ids - found:
+        raise UnknownPortalError(
+            "Unknown portal(s): " + ", ".join(sorted(str(m) for m in missing))
+        )
+
+
+async def set_portal_assignments(
+    db: AsyncSession, user: User, portal_ids: list[uuid.UUID]
+) -> None:
+    """Make ``user`` a portal admin of exactly ``portal_ids`` (not committed).
+
+    Only portal admins keep assignments; for any other role they're cleared.
+    Raises ``UnknownPortalError`` if a portal doesn't exist.
+    """
+    wanted = set(portal_ids) if user.role == UserRole.portal_admin else set()
+    await ensure_portals_exist(db, wanted)
+    # Diff rather than replace: re-adding a row with the same key in one flush
+    # can insert before the old one is deleted.
+    current = {a.portal_id: a for a in user.portal_assignments}
+    for portal_id, assignment in current.items():
+        if portal_id not in wanted:
+            user.portal_assignments.remove(assignment)
+    for portal_id in wanted - current.keys():
+        user.portal_assignments.append(PortalAdmin(portal_id=portal_id))
+
+
+async def count_active_super_admins(db: AsyncSession) -> int:
+    return await db.scalar(
+        select(func.count())
+        .select_from(User)
+        .where(User.role == UserRole.super_admin, User.is_active.is_(True))
+    ) or 0

@@ -10,14 +10,14 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_user
 from app.api.routes import ado as ado_routes
 from app.config import settings
 from app.core import security
 from app.db import Base, get_db
 from app.main import app
 from app.models.ado_connection import SINGLETON_ID, AdoConnection
-from app.models.user import User, UserRole
+from app.models.user import PortalAdmin, User, UserRole
 from app.services.ado_client import ADOClient, ADOError
 from app.services.ado_connection import ConnectionSource, resolve_connection
 
@@ -50,7 +50,7 @@ async def sessionmaker():
     async with engine.begin() as conn:
         await conn.run_sync(
             Base.metadata.create_all,
-            tables=[User.__table__, AdoConnection.__table__],
+            tables=[User.__table__, PortalAdmin.__table__, AdoConnection.__table__],
         )
     yield async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     await engine.dispose()
@@ -64,7 +64,7 @@ async def db(sessionmaker):
 
 @pytest.fixture
 async def admin(db):
-    user = User(email="admin@example.com", display_name="Admin", role=UserRole.admin)
+    user = User(email="admin@example.com", display_name="Admin", role=UserRole.super_admin)
     db.add(user)
     await db.commit()
     return user
@@ -121,7 +121,7 @@ async def api(sessionmaker, admin, linked_tickets):
             yield session
 
     app.dependency_overrides[get_db] = _db
-    app.dependency_overrides[get_current_admin] = lambda: admin
+    app.dependency_overrides[get_current_user] = lambda: admin
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         yield client

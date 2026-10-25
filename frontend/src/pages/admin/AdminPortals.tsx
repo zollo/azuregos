@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
+import { isAdmin, isSuperAdmin } from "../../auth/roles";
 import Icon from "../../components/Icon";
+import { useAuth } from "../../context/AuthContext";
 import type { Portal } from "../../types";
 
 export default function AdminPortals() {
   const [portals, setPortals] = useState<Portal[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const full = isAdmin(user);
 
   const load = () => {
     setLoading(true);
@@ -30,21 +34,27 @@ export default function AdminPortals() {
       <div className="row between">
         <div>
           <h1>Portals</h1>
-          <p className="subtitle">Modular forms that front Azure DevOps work items.</p>
+          <p className="subtitle">
+            {full
+              ? "Modular forms that front Azure DevOps work items."
+              : "The portals you've been assigned to manage."}
+          </p>
         </div>
         <div className="row">
           <Link className="btn secondary" to="/admin/tickets">Queue</Link>
-          <Link className="btn secondary" to="/admin/categories">Categories</Link>
-          <Link className="btn secondary" to="/admin/users">Users</Link>
-          <Link className="btn secondary" to="/admin/ado">Azure DevOps</Link>
-          <Link className="btn" to="/admin/portals/new">+ New Portal</Link>
+          {full && <Link className="btn secondary" to="/admin/categories">Categories</Link>}
+          {full && <Link className="btn secondary" to="/admin/users">Users</Link>}
+          {isSuperAdmin(user) && <Link className="btn secondary" to="/admin/ado">Azure DevOps</Link>}
+          {full && <Link className="btn" to="/admin/portals/new">+ New Portal</Link>}
         </div>
       </div>
 
       {loading ? (
         <div className="muted">Loading…</div>
       ) : portals.length === 0 ? (
-        <div className="empty">No portals yet. Create your first one.</div>
+        <div className="empty">
+          {full ? "No portals yet. Create your first one." : "You haven't been assigned any portals yet."}
+        </div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           <table>
@@ -80,9 +90,11 @@ export default function AdminPortals() {
                       <button className="btn secondary small" onClick={() => navigate(`/admin/portals/${p.id}`)}>
                         Edit
                       </button>
-                      <button className="btn danger small" onClick={() => remove(p)}>
-                        Delete
-                      </button>
+                      {full && (
+                        <button className="btn danger small" onClick={() => remove(p)}>
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

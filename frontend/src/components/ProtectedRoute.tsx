@@ -1,13 +1,15 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
+import { hasAccess, type AdminAccess } from "../auth/roles";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute({
   children,
-  adminOnly = false,
+  access,
 }: {
   children: ReactNode;
-  adminOnly?: boolean;
+  /** Restrict to an admin role; omit for any signed-in user. */
+  access?: AdminAccess;
 }) {
   const { user, loading } = useAuth();
 
@@ -17,7 +19,7 @@ export default function ProtectedRoute({
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  if (adminOnly && user.role !== "admin") {
+  if (access && !hasAccess(user, access)) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;

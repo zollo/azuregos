@@ -1,4 +1,8 @@
-"""Portal routes: public catalog + form fetch, admin CRUD."""
+"""Portal routes: public catalog + form fetch, admin CRUD.
+
+Admins create and delete portals; portal admins may list and edit only the
+portals assigned to them.
+"""
 from __future__ import annotations
 
 import uuid
@@ -7,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user
+from app.api.deps import get_current_admin, get_current_staff, get_current_user
 from app.core.utils import slugify
 from app.db import get_db
 from app.models.category import Category
@@ -122,9 +126,16 @@ async def get_portal(
 
 
 # ── Admin CRUD ───────────────────────────────────────────────────────────
-@router.get("", response_model=list[PortalRead], dependencies=[Depends(get_current_admin)])
-async def list_all_portals(db: AsyncSession = Depends(get_db)) -> list[PortalRead]:
-    result = await db.execute(select(Portal).order_by(Portal.name))
+@router.get("", response_model=list[PortalRead])
+async def list_all_portals(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_staff),
+) -> list[PortalRead]:
+    """Every portal for admins; a portal admin's assigned portals only."""
+    stmt = select(Portal).order_by(Portal.name)
+    if not user.is_admin:
+        stmt = stmt.where(Portal.id.in_(user.portal_ids))
+    result = await db.execute(stmt)
     return [_to_read(p) for p in result.scalars().all()]
 
 
@@ -247,14 +258,15 @@ async def create_portal(
     return _to_read(portal)
 
 
-@router.patch(
-    "/{portal_id}",
-    response_model=PortalRead,
-    dependencies=[Depends(get_current_admin)],
-)
+@router.patch("/{portal_id}", response_model=PortalRead)
 async def update_portal(
-    portal_id: uuid.UUID, payload: PortalUpdate, db: AsyncSession = Depends(get_db)
+    portal_id: uuid.UUID,
+    payload: PortalUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_staff),
 ) -> PortalRead:
+    if not user.can_manage_portal(portal_id):
+        raise HTTPException(status_code=403, detail="You aren't an admin of this portal")
     portal = await db.get(Portal, portal_id)
     if portal is None:
         raise HTTPException(status_code=404, detail="Portal not found")
