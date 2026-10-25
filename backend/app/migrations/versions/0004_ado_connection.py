@@ -23,8 +23,10 @@ def upgrade() -> None:
         sa.Column("default_project", sa.String(200), nullable=False, server_default=""),
         sa.Column("updated_by_id", postgresql.UUID(as_uuid=True),
                   sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(),
+                  nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(),
+                  nullable=False),
         # Singleton: only one connection row may exist.
         sa.CheckConstraint("id = 1", name="ck_ado_connection_singleton"),
     )
