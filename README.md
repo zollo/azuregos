@@ -93,7 +93,9 @@ There are two ways to connect Azure DevOps:
 **Precedence:** a connection saved in the UI wins over the env vars and
 replaces them as a whole (they're never mixed field by field). **Remove saved
 connection** reverts to the env vars. Changes apply immediately to the API and
-the worker, no restart needed. Rotating `SECRET_KEY` makes a saved PAT
+the worker, no restart needed. Switching to a *different* organization (by
+saving or by removing the saved connection) is refused while any ticket is
+linked to a work item, since tickets only store the work-item ID. Rotating `SECRET_KEY` makes a saved PAT
 unreadable: the page then shows an error and the PAT must be re-entered.
 
 Until a connection is configured, submissions are cached locally and marked

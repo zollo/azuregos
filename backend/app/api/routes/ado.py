@@ -3,12 +3,14 @@ pickers (projects / work-item types / area paths) used by the portal editor."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
 from app.core.security import encrypt_secret
 from app.db import get_db
 from app.models.ado_connection import SINGLETON_ID, AdoConnection
+from app.models.ticket import Ticket
 from app.models.user import User
 from app.schemas.ado import (
     AdoConnectionStatus,
@@ -66,23 +68,57 @@ async def _payload_pat(db: AsyncSession, payload: AdoConnectionWrite) -> str:
     return pat
 
 
-def _default_project_error(client: ADOClient, projects: list[dict]) -> str | None:
-    if not client.default_project:
-        return None
-    names = {(p.get("name") or "").lower() for p in projects}
-    if client.default_project.lower() in names:
-        return None
-    return f"Project '{client.default_project}' was not found in this organization"
+async def _verify(client: ADOClient) -> int:
+    """Check a connection; returns the number of projects visible.
+
+    Raises ``ADOError``: non-retryable for a definite rejection (bad PAT, not an
+    ADO org, unknown default project), retryable when ADO is just unreachable.
+    """
+    projects = await client.list_projects()
+    if client.default_project:
+        # Look it up directly: the project list is paginated.
+        try:
+            await client.get_project(client.default_project)
+        except ADOError as exc:
+            if exc.status_code != 404:
+                raise
+            raise ADOError(
+                f"Project '{client.default_project}' was not found in this organization",
+                status_code=404,
+                retryable=False,
+            ) from exc
+    return len(projects)
 
 
-async def _check_connection(client: ADOClient) -> AdoConnectionTestResult:
-    """Try the connection by listing projects. Never raises."""
-    try:
-        projects = await client.list_projects()
-    except ADOError as exc:
-        return AdoConnectionTestResult(ok=False, error=str(exc))
-    error = _default_project_error(client, projects)
-    return AdoConnectionTestResult(ok=error is None, project_count=len(projects), error=error)
+def _same_org(a: str, b: str) -> bool:
+    return a.strip().rstrip("/").lower() == b.strip().rstrip("/").lower()
+
+
+async def _linked_ticket_count(db: AsyncSession) -> int:
+    return await db.scalar(
+        select(func.count()).select_from(Ticket).where(Ticket.ado_work_item_id.is_not(None))
+    ) or 0
+
+
+async def _guard_org_switch(db: AsyncSession, new_org_url: str) -> None:
+    """Block switching organizations while tickets are linked to work items.
+
+    Tickets store only a work-item ID, so pointing them at another org would
+    make refreshes and discussions hit unrelated work items with the same ID.
+    """
+    current = await resolve_connection(db)
+    if not current.org_url or not new_org_url or _same_org(current.org_url, new_org_url):
+        return
+    linked = await _linked_ticket_count(db)
+    if linked:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"{linked} ticket(s) are linked to work items in {current.org_url}. "
+                "Switching to a different organization would point them at unrelated "
+                "work items, so it isn't allowed."
+            ),
+        )
 
 
 @router.get("/connection", response_model=AdoConnectionStatus)
@@ -98,7 +134,11 @@ async def test_connection(
     """Check connection values without saving. A blank PAT uses the saved one."""
     pat = await _payload_pat(db, payload)
     client = ADOClient(org_url=payload.org_url, pat=pat, default_project=payload.default_project)
-    return await _check_connection(client)
+    try:
+        count = await _verify(client)
+    except ADOError as exc:
+        return AdoConnectionTestResult(ok=False, error=str(exc))
+    return AdoConnectionTestResult(ok=True, project_count=count)
 
 
 @router.put("/connection", response_model=AdoConnectionStatus)
@@ -114,18 +154,15 @@ async def save_connection(
     how portal saves treat an unreachable ADO.
     """
     pat = await _payload_pat(db, payload)
+    await _guard_org_switch(db, payload.org_url)
     client = ADOClient(org_url=payload.org_url, pat=pat, default_project=payload.default_project)
     try:
-        projects = await client.list_projects()
+        await _verify(client)
     except ADOError as exc:
         if not exc.retryable:
             raise HTTPException(
                 status_code=422, detail=f"Azure DevOps rejected the connection: {exc}"
             ) from exc
-    else:
-        error = _default_project_error(client, projects)
-        if error is not None:
-            raise HTTPException(status_code=422, detail=error)
 
     row = await get_stored_connection(db)
     if row is None:
@@ -145,6 +182,7 @@ async def delete_connection(db: AsyncSession = Depends(get_db)):
     """Remove the saved connection, reverting to the ADO_* env vars."""
     row = await get_stored_connection(db)
     if row is not None:
+        await _guard_org_switch(db, env_connection().org_url)
         await db.delete(row)
         await db.commit()
 

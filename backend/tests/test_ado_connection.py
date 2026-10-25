@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_current_admin
+from app.api.routes import ado as ado_routes
 from app.config import settings
 from app.core import security
 from app.db import Base, get_db
@@ -70,7 +71,8 @@ async def admin(db):
 
 
 class _FakeADO:
-    """Patches ``ADOClient.list_projects`` and records the clients it saw."""
+    """Patches the ADO calls used to verify a connection, recording the
+    (org_url, pat) pairs they saw."""
 
     def __init__(self, monkeypatch):
         self.projects = [{"id": "1", "name": "UiProject"}]
@@ -84,7 +86,14 @@ class _FakeADO:
                 raise fake.error
             return fake.projects
 
+        async def get_project(client: ADOClient, project: str):
+            for p in fake.projects:
+                if p["name"].lower() == project.lower():
+                    return p
+            raise ADOError("ADO 404", status_code=404, retryable=False)
+
         monkeypatch.setattr(ADOClient, "list_projects", list_projects)
+        monkeypatch.setattr(ADOClient, "get_project", get_project)
 
 
 @pytest.fixture
@@ -93,7 +102,20 @@ def fake_ado(monkeypatch):
 
 
 @pytest.fixture
-async def api(sessionmaker, admin):
+def linked_tickets(monkeypatch):
+    """How many tickets are linked to ADO work items (the tickets table isn't
+    created in SQLite)."""
+    state = {"count": 0}
+
+    async def count(db):
+        return state["count"]
+
+    monkeypatch.setattr(ado_routes, "_linked_ticket_count", count)
+    return state
+
+
+@pytest.fixture
+async def api(sessionmaker, admin, linked_tickets):
     async def _db():
         async with sessionmaker() as session:
             yield session
@@ -288,3 +310,72 @@ async def test_delete_reverts_to_env(api, env_ado, db):
     resp = await api.get("/api/ado/connection")
     assert resp.json()["source"] == "environment"
     assert resp.json()["stored"] is None
+
+
+# ── Organization switches ─────────────────────────────────────────────────
+async def test_switching_org_blocked_while_tickets_linked(api, env_ado, fake_ado, linked_tickets):
+    linked_tickets["count"] = 3
+    resp = await api.put(
+        "/api/ado/connection", json={"org_url": "https://dev.azure.com/other", "pat": "p"}
+    )
+    assert resp.status_code == 409
+    assert "3 ticket(s)" in resp.json()["detail"]
+    assert fake_ado.seen == []
+
+
+async def test_same_org_allowed_while_tickets_linked(api, env_ado, fake_ado, linked_tickets):
+    linked_tickets["count"] = 3
+    # Same org as ADO_ORG_URL, differing only in case and trailing slash.
+    resp = await api.put(
+        "/api/ado/connection", json={"org_url": "https://DEV.azure.com/env-org/", "pat": "p"}
+    )
+    assert resp.status_code == 200, resp.text
+
+
+async def test_delete_blocked_when_env_is_another_org(api, env_ado, db, linked_tickets):
+    await _save_row(db)  # ui-org, while env is env-org
+    linked_tickets["count"] = 1
+    resp = await api.delete("/api/ado/connection")
+    assert resp.status_code == 409
+    assert await db.get(AdoConnection, SINGLETON_ID) is not None
+
+
+async def test_delete_allowed_when_env_unset(api, no_env_ado, db, linked_tickets):
+    await _save_row(db)
+    linked_tickets["count"] = 1
+    resp = await api.delete("/api/ado/connection")
+    assert resp.status_code == 204
+
+
+# ── Response validation ───────────────────────────────────────────────────
+@pytest.mark.parametrize(
+    "response",
+    [
+        httpx.Response(200, text="<html>Sign in</html>"),
+        httpx.Response(200, json={}),
+        httpx.Response(200, json=[1, 2]),
+    ],
+)
+async def test_list_projects_rejects_non_ado_responses(monkeypatch, response):
+    async def get(self, url, **kwargs):
+        return response
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", get)
+    client = ADOClient(org_url="https://example.com", pat="p", default_project="")
+    with pytest.raises(ADOError) as exc:
+        await client.list_projects()
+    assert not exc.value.retryable
+
+
+async def test_default_project_found_beyond_first_page(api, fake_ado, monkeypatch):
+    # Missing from the (first page of the) list, but the direct lookup finds it.
+    async def get_project(client, project):
+        return {"name": project}
+
+    fake_ado.projects = []
+    monkeypatch.setattr(ADOClient, "get_project", get_project)
+    resp = await api.post(
+        "/api/ado/connection/test",
+        json={"org_url": "https://dev.azure.com/o", "pat": "p", "default_project": "Late"},
+    )
+    assert resp.json()["ok"] is True

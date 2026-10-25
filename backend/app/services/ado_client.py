@@ -21,6 +21,7 @@ from __future__ import annotations
 import base64
 import json
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -175,7 +176,29 @@ class ADOClient:
         except httpx.RequestError as exc:
             raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
         self._raise_for_status(resp)
-        return resp.json().get("value", [])
+        # Validate the shape: a wrong URL can answer 200 with HTML or other
+        # JSON, which must not pass as "an org with no projects".
+        try:
+            projects = resp.json().get("value")
+        except (ValueError, AttributeError):
+            projects = None
+        if not isinstance(projects, list):
+            raise ADOError(
+                "Unexpected response: this doesn't look like an Azure DevOps organization URL",
+                retryable=False,
+            )
+        return projects
+
+    async def get_project(self, project: str) -> dict[str, Any]:
+        """A single project by name or ID (404 ``ADOError`` if it doesn't exist)."""
+        url = f"{self.org_url}/_apis/projects/{quote(project, safe='')}?api-version={API_VERSION}"
+        try:
+            async with self._client() as client:
+                resp = await client.get(url)
+        except httpx.RequestError as exc:
+            raise ADOError(f"Network error contacting ADO: {exc}", retryable=True) from exc
+        self._raise_for_status(resp)
+        return resp.json()
 
     async def list_work_item_types(self, project: str) -> list[dict[str, Any]]:
         """List a project's work-item types (for portal configuration)."""
