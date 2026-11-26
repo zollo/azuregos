@@ -22,6 +22,10 @@ their ticket through to done. Every ticket becomes a real ADO work item, so your
 team keeps working in Azure DevOps while everyone else gets a simple front door.
 You run it yourself, so the requests and your ADO token stay on your server.
 
+<p align="center">
+  <img src="docs/images/portal-form.png" alt="A request form for a laptop or hardware issue" width="720">
+</p>
+
 ## Features
 
 **Portals your admins design**
@@ -47,6 +51,10 @@ You run it yourself, so the requests and your ADO token stay on your server.
   ADO comments with the requester's name, and your team's ADO comments show up
   in Azuregos.
 
+<p align="center">
+  <img src="docs/images/ticket.png" alt="A ticket with its Azure DevOps work item and the discussion with the service desk" width="560">
+</p>
+
 **Fits into Azure DevOps**
 - No custom fields or process changes needed. Azuregos marks its work items
   with tags: `azuregos`, `azuregos-portal:<slug>` and
@@ -61,6 +69,14 @@ You run it yourself, so the requests and your ADO token stay on your server.
 - **Portal admins** edit only the portals they're assigned to, and see and
   retry those portals' tickets.
 - **End users** browse the catalog, submit tickets and follow their own.
+
+<p align="center">
+  <img src="docs/images/portal-editor.png" alt="The portal editor: icon, Markdown description, category, ADO project, work-item type and area path" width="720">
+</p>
+
+<p align="center">
+  <img src="docs/images/queue.png" alt="The ticket queue with each ticket's sync status and ADO work item" width="720">
+</p>
 
 **Sign in your way**
 - Local accounts, OpenID Connect (OIDC) and SAML 2.0. Federated users are
