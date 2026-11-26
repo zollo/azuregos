@@ -22,7 +22,7 @@ export default function AuthCallback() {
   }, [loginWithToken, navigate]);
 
   return (
-    <div className="center-screen muted">
+    <div className="center-screen brand-backdrop muted">
       {error ? <div className="alert error">{error}</div> : "Completing sign-in…"}
     </div>
   );
