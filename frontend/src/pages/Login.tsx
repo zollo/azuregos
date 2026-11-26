@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
+import Logo from "../components/Logo";
 import { useAuth } from "../context/AuthContext";
 import type { AuthProviders } from "../types";
 
@@ -40,11 +41,13 @@ export default function Login() {
   };
 
   return (
-    <div className="center-screen">
-      <div className="card" style={{ width: 400 }}>
-        <h1 style={{ color: "var(--primary)" }}>
-          Azure<span style={{ color: "var(--text)" }}>gos</span>
-        </h1>
+    <div className="center-screen brand-backdrop">
+      <div className="card auth-card">
+        <div className="brand">
+          <Logo size={36} />
+          <span className="wordmark">Azuregos</span>
+        </div>
+        <h1>Sign in</h1>
         <p className="subtitle">Sign in to submit and track your requests.</p>
 
         {error && <div className="alert error">{error}</div>}

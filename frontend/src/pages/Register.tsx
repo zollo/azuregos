@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
+import Logo from "../components/Logo";
 import { useAuth } from "../context/AuthContext";
 
 export default function Register() {
@@ -31,8 +32,12 @@ export default function Register() {
   };
 
   return (
-    <div className="center-screen">
-      <div className="card" style={{ width: 400 }}>
+    <div className="center-screen brand-backdrop">
+      <div className="card auth-card">
+        <div className="brand">
+          <Logo size={36} />
+          <span className="wordmark">Azuregos</span>
+        </div>
         <h1>Create an account</h1>
         <p className="subtitle">Register to start submitting requests.</p>
         {error && <div className="alert error">{error}</div>}
