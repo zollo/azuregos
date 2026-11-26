@@ -6,8 +6,10 @@
   --border: #dbe6f0;
   --text: #0f1f30;
   --muted: #5b6b7d;
-  --primary: #0284c7;
-  --primary-hover: #0369a1;
+  /* Text-safe blue (>= 4.5:1 on white and on --primary-soft); the brighter
+     sky blues stay in decorative branding. */
+  --primary: #0369a1;
+  --primary-hover: #075985;
   --primary-soft: #e0f2fe;
   --on-primary: #ffffff;
   --danger: #dc2626;
@@ -16,8 +18,8 @@
   --radius: 12px;
   /* Azuregos brand, from the logo (frontend/scripts/make_icons.py) */
   --brand-gradient: linear-gradient(45deg, #0369a1, #0ea5e9 55%, #38bdf8);
-  /* Primary buttons: the same blues, one step deeper so white text stays readable */
-  --button-gradient: linear-gradient(45deg, #0369a1, #0284c7 55%, #0ea5e9);
+  /* Primary buttons: the same blues, deep enough that white labels keep >= 5:1 */
+  --button-gradient: linear-gradient(45deg, #075985, #0369a1 55%, #0272b0);
   --wordmark-gradient: linear-gradient(45deg, #0369a1, #0ea5e9);
   --glow-1: rgba(56, 189, 248, 0.22);
   --glow-2: rgba(3, 105, 161, 0.16);
@@ -240,14 +242,14 @@ input:focus, select:focus, textarea:focus {
   text-decoration: none;
   box-shadow: 0 1px 2px rgba(3, 105, 161, 0.25);
 }
-.btn:hover { filter: brightness(1.08); text-decoration: none; }
+.btn:hover { filter: brightness(0.92); text-decoration: none; }
 .btn.secondary, .btn.danger { box-shadow: none; }
 .btn.secondary:hover { filter: none; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; filter: none; }
 .btn.secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
 .btn.secondary:hover { background: var(--hover); }
 .btn.danger { background: var(--danger); color: #ffffff; }
-.btn.danger:hover { filter: brightness(1.08); }
+.btn.danger:hover { filter: brightness(0.92); }
 .btn.small { padding: 5px 10px; font-size: 13px; }
 
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }

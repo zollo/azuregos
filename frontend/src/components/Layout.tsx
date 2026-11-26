@@ -29,9 +29,14 @@ export default function Layout() {
           </NavLink>
           <NavLink to="/tickets">My Tickets</NavLink>
           {isStaff(user) && (
-            <NavLink to="/admin" className={() => (inAdmin ? "active" : "")}>
+            // A plain Link: NavLink would also mark Admin aria-current on /admin/tickets.
+            <Link
+              to="/admin"
+              className={inAdmin ? "active" : undefined}
+              aria-current={inAdmin ? "page" : undefined}
+            >
               Admin
-            </NavLink>
+            </Link>
           )}
           {isStaff(user) && <NavLink to="/admin/tickets">Queue</NavLink>}
           <NavLink to="/info">Info</NavLink>
