@@ -45,7 +45,9 @@ You run it yourself, so the requests and your ADO token stay on your server.
 **Tickets that never get lost**
 - A submission is saved in Azuregos first and then sent to ADO. If ADO is down
   or not configured yet, the ticket waits as *Queued* and a background worker
-  keeps retrying until it goes through.
+  retries it every `ADO_RETRY_INTERVAL_SECONDS`, up to `ADO_MAX_RETRY_ATTEMPTS`
+  times. Admins can retry a ticket from the queue at any time, for example
+  once a long outage is over.
 - **My tickets** shows each requester their own tickets and their status.
 - A discussion thread on every ticket: replies are posted to the work item's
   ADO comments with the requester's name, and your team's ADO comments show up
@@ -196,14 +198,16 @@ docs are served at `/docs`, and the OpenAPI spec at `/openapi.json`.
 
 ```bash
 make up                     # full stack with hot reload: app on :8080, API on :8000
-cd backend && pip install ".[dev]" && ruff check . && pytest -q -m "not functional"
-cd frontend && npm install && npm run build && npm test
+(cd backend && pip install ".[dev]" && ruff check . && pytest -q -m "not functional")
+(cd frontend && npm install && npm run build && npm test)
 ```
 
 The tests in `backend/tests/functional/` run against a real Azure DevOps
-organization. They're skipped unless you copy `backend/.env.test.example` to
-`backend/.env.test` and give it a short-lived token (Work Items: Read & Write);
-every work item they create is deleted afterwards. Run them with
+organization. They run whenever `ADO_ORG_URL` and `ADO_PAT` are set, either
+exported in your shell or in `backend/.env.test` (copy
+`backend/.env.test.example`), and are skipped otherwise. Use a short-lived
+token (Work Items: Read & Write); every work item they create is deleted
+afterwards. Run them with
 `make functional-test`.
 
 See [CLAUDE.md](CLAUDE.md) for commands and architecture notes, and
