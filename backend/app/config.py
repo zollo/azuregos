@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     oidc_client_secret: str = Field(default="", alias="OIDC_CLIENT_SECRET")
     oidc_discovery_url: str = Field(default="", alias="OIDC_DISCOVERY_URL")
     oidc_redirect_uri: str = Field(default="", alias="OIDC_REDIRECT_URI")
+    oidc_scopes: str = Field(default="openid email profile", alias="OIDC_SCOPES")
 
     # SAML
     saml_enabled: bool = Field(default=False, alias="SAML_ENABLED")

@@ -84,13 +84,13 @@ export default function Login() {
               {providers.oidc && (
                 <a className="btn secondary" style={{ width: "100%", justifyContent: "center" }}
                    href={`${api.baseUrl}/api/auth/oidc/login`}>
-                  Continue with SSO (OIDC)
+                  {providers.oidc_label || "Continue with SSO (OIDC)"}
                 </a>
               )}
               {providers.saml && (
                 <a className="btn secondary" style={{ width: "100%", justifyContent: "center" }}
                    href={`${api.baseUrl}/api/auth/saml/login`}>
-                  Continue with SSO (SAML)
+                  {providers.saml_label || "Continue with SSO (SAML)"}
                 </a>
               )}
             </div>

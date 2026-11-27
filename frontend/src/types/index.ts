@@ -129,6 +129,81 @@ export interface AuthProviders {
   local: boolean;
   oidc: boolean;
   saml: boolean;
+  oidc_label?: string;
+  saml_label?: string;
+}
+
+// ── Single sign-on settings (super admins) ───────────────────────────────
+export type SsoSource = "database" | "environment" | "none";
+
+export interface OidcSettingsValues {
+  enabled: boolean;
+  discovery_url: string;
+  client_id: string;
+  client_secret_set: boolean;
+  redirect_uri: string;
+  scopes: string;
+  button_label: string;
+}
+
+export interface OidcStoredSettings extends OidcSettingsValues {
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface OidcSettingsStatus {
+  source: SsoSource;
+  enabled: boolean;
+  configured: boolean;
+  stored: OidcStoredSettings | null;
+  environment: OidcSettingsValues;
+  effective_redirect_uri: string;
+  default_redirect_uri: string;
+  error: string | null;
+}
+
+export interface OidcTestResult {
+  ok: boolean;
+  issuer: string | null;
+  authorization_endpoint: string | null;
+  error: string | null;
+}
+
+export interface SamlSettingsValues {
+  enabled: boolean;
+  metadata_url: string;
+  metadata_xml: string;
+  sp_entity_id: string;
+  acs_url: string;
+  sp_x509_cert: string;
+  sp_private_key_set: boolean;
+  email_attribute: string;
+  name_attribute: string;
+  button_label: string;
+}
+
+export interface SamlStoredSettings extends SamlSettingsValues {
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface SamlSettingsStatus {
+  source: SsoSource;
+  enabled: boolean;
+  configured: boolean;
+  stored: SamlStoredSettings | null;
+  environment: SamlSettingsValues;
+  effective_acs_url: string;
+  effective_sp_entity_id: string;
+  default_acs_url: string;
+  error: string | null;
+}
+
+export interface SamlTestResult {
+  ok: boolean;
+  idp_entity_id: string | null;
+  sso_url: string | null;
+  error: string | null;
 }
 
 export interface AdoProject {
