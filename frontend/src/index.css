@@ -207,7 +207,7 @@ label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
 .field .help { color: var(--muted); font-size: 13px; margin-top: 4px; font-weight: 400; }
 .req { color: var(--danger); }
 
-input[type="text"], input[type="email"], input[type="password"], input[type="number"],
+input[type="text"], input[type="url"], input:not([type]), input[type="email"], input[type="password"], input[type="number"],
 input[type="date"], select, textarea {
   width: 100%;
   padding: 9px 11px;
