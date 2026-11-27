@@ -57,7 +57,7 @@ def _to_read(portal: Portal) -> PortalRead:
 
 # ── Public catalog (any authenticated user) ──────────────────────────────
 @router.get("/catalog")
-async def catalog(
+async def portal_catalog(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[dict]:
