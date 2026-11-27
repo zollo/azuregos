@@ -3,6 +3,10 @@
 ---
 - name: Apply azuregos_ado_connection
   ansible.builtin.include_tasks: ado_connection.yml
+- name: Apply azuregos_oidc_settings
+  ansible.builtin.include_tasks: oidc_settings.yml
+- name: Apply azuregos_saml_settings
+  ansible.builtin.include_tasks: saml_settings.yml
 - name: Apply azuregos_categories
   ansible.builtin.include_tasks: category.yml
 - name: Apply azuregos_portals

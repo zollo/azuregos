@@ -1,5 +1,13 @@
 ---
 # Input for the configure role in ../run-e2e.sh.
+azuregos_oidc_settings:
+  enabled: false
+  discovery_url: https://idp.example.com/.well-known/openid-configuration
+  client_id: e2e-client
+  client_secret: e2e-secret
+azuregos_saml_settings:
+  enabled: false
+  metadata_url: https://idp.example.com/saml/metadata
 azuregos_categories:
   - name: Hardware
     icon: laptop

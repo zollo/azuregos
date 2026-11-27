@@ -9,6 +9,31 @@ azuregos__export:
   fields:
   - default_project
   - org_url
+- var: azuregos_oidc_settings
+  info: oidc_settings_info
+  return_key: oidc_settings
+  read_key: stored
+  fields:
+  - button_label
+  - client_id
+  - discovery_url
+  - enabled
+  - redirect_uri
+  - scopes
+- var: azuregos_saml_settings
+  info: saml_settings_info
+  return_key: saml_settings
+  read_key: stored
+  fields:
+  - acs_url
+  - button_label
+  - email_attribute
+  - enabled
+  - metadata_url
+  - metadata_xml
+  - name_attribute
+  - sp_entity_id
+  - sp_x509_cert
 - var: azuregos_categories
   info: category_info
   return_key: categories

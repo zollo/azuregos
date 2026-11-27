@@ -13,7 +13,13 @@ action_groups:
   - build_info
   - category
   - category_info
+  - oidc_settings
+  - oidc_settings_info
+  - oidc_settings_test
   - portal
   - portal_info
+  - saml_settings
+  - saml_settings_info
+  - saml_settings_test
   - user
   - user_info

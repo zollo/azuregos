@@ -3,10 +3,10 @@ argument_specs:
   main:
     short_description: Write an Azuregos instance's configuration to a vars file
     description:
-      - Reads the ADO connection, categories, portals and users and writes them as
+      - Reads the ADO connection, OIDC and SAML settings, categories, portals and users and writes them as
         the variables of the zollo.azuregos.configure role, with category and
         portal names instead of IDs.
-      - Secrets (passwords, the ADO PAT) are never returned by the API, so they are
+      - Secrets (passwords, the ADO PAT, the OIDC client secret, the SAML SP key) are never returned by the API, so they are
         not in the file. Federated (OIDC/SAML) accounts are left out because they
         can't be created through the API.
     options:

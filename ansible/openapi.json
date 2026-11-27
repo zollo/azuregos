@@ -184,6 +184,40 @@
         "title": "AuthProvider",
         "type": "string"
       },
+      "AuthProviders": {
+        "description": "Which login buttons the login page shows.",
+        "properties": {
+          "local": {
+            "default": true,
+            "title": "Local",
+            "type": "boolean"
+          },
+          "oidc": {
+            "title": "Oidc",
+            "type": "boolean"
+          },
+          "oidc_label": {
+            "title": "Oidc Label",
+            "type": "string"
+          },
+          "saml": {
+            "title": "Saml",
+            "type": "boolean"
+          },
+          "saml_label": {
+            "title": "Saml Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "oidc",
+          "saml",
+          "oidc_label",
+          "saml_label"
+        ],
+        "title": "AuthProviders",
+        "type": "object"
+      },
       "BuildInfo": {
         "properties": {
           "ado_configured": {
@@ -566,6 +600,276 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "OidcSettingsStatus": {
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "default_redirect_uri": {
+            "title": "Default Redirect Uri",
+            "type": "string"
+          },
+          "effective_redirect_uri": {
+            "title": "Effective Redirect Uri",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/OidcSettingsValues"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "stored": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OidcStoredSettings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "enabled",
+          "configured",
+          "stored",
+          "environment",
+          "effective_redirect_uri",
+          "default_redirect_uri"
+        ],
+        "title": "OidcSettingsStatus",
+        "type": "object"
+      },
+      "OidcSettingsValues": {
+        "description": "Non-secret values. The client secret itself is never returned.",
+        "properties": {
+          "button_label": {
+            "default": "",
+            "title": "Button Label",
+            "type": "string"
+          },
+          "client_id": {
+            "title": "Client Id",
+            "type": "string"
+          },
+          "client_secret_set": {
+            "title": "Client Secret Set",
+            "type": "boolean"
+          },
+          "discovery_url": {
+            "title": "Discovery Url",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "redirect_uri": {
+            "title": "Redirect Uri",
+            "type": "string"
+          },
+          "scopes": {
+            "title": "Scopes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "discovery_url",
+          "client_id",
+          "client_secret_set",
+          "redirect_uri",
+          "scopes"
+        ],
+        "title": "OidcSettingsValues",
+        "type": "object"
+      },
+      "OidcSettingsWrite": {
+        "description": "Save (or test) OIDC settings. A blank/omitted ``client_secret`` keeps the\nsaved one. Required fields are only enforced when ``enabled``.",
+        "properties": {
+          "button_label": {
+            "default": "",
+            "description": "Login button text; blank uses a default.",
+            "maxLength": 100,
+            "title": "Button Label",
+            "type": "string"
+          },
+          "client_id": {
+            "default": "",
+            "description": "Client ID at the IdP.",
+            "maxLength": 500,
+            "title": "Client Id",
+            "type": "string"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Client secret at the IdP. Blank or omitted keeps the saved one.",
+            "title": "Client Secret"
+          },
+          "discovery_url": {
+            "default": "",
+            "description": "The IdP's OpenID configuration URL (.../.well-known/openid-configuration).",
+            "maxLength": 500,
+            "title": "Discovery Url",
+            "type": "string"
+          },
+          "enabled": {
+            "default": false,
+            "description": "Show the OIDC login button and accept OIDC logins.",
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "redirect_uri": {
+            "default": "",
+            "description": "Redirect URI registered at the IdP. Blank uses <first CORS origin>/api/auth/oidc/callback.",
+            "maxLength": 500,
+            "title": "Redirect Uri",
+            "type": "string"
+          },
+          "scopes": {
+            "default": "openid email profile",
+            "description": "Space-separated scopes to request; must include openid.",
+            "maxLength": 500,
+            "title": "Scopes",
+            "type": "string"
+          }
+        },
+        "title": "OidcSettingsWrite",
+        "type": "object"
+      },
+      "OidcStoredSettings": {
+        "properties": {
+          "button_label": {
+            "default": "",
+            "title": "Button Label",
+            "type": "string"
+          },
+          "client_id": {
+            "title": "Client Id",
+            "type": "string"
+          },
+          "client_secret_set": {
+            "title": "Client Secret Set",
+            "type": "boolean"
+          },
+          "discovery_url": {
+            "title": "Discovery Url",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "redirect_uri": {
+            "title": "Redirect Uri",
+            "type": "string"
+          },
+          "scopes": {
+            "title": "Scopes",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          }
+        },
+        "required": [
+          "enabled",
+          "discovery_url",
+          "client_id",
+          "client_secret_set",
+          "redirect_uri",
+          "scopes",
+          "updated_at"
+        ],
+        "title": "OidcStoredSettings",
+        "type": "object"
+      },
+      "OidcTestResult": {
+        "properties": {
+          "authorization_endpoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorization Endpoint"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "issuer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuer"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "OidcTestResult",
+        "type": "object"
+      },
       "PortalCreate": {
         "properties": {
           "ado_project": {
@@ -913,6 +1217,331 @@
           "password"
         ],
         "title": "RegisterRequest",
+        "type": "object"
+      },
+      "SamlSettingsStatus": {
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "default_acs_url": {
+            "title": "Default Acs Url",
+            "type": "string"
+          },
+          "effective_acs_url": {
+            "title": "Effective Acs Url",
+            "type": "string"
+          },
+          "effective_sp_entity_id": {
+            "title": "Effective Sp Entity Id",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/SamlSettingsValues"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "stored": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SamlStoredSettings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "enabled",
+          "configured",
+          "stored",
+          "environment",
+          "effective_acs_url",
+          "effective_sp_entity_id",
+          "default_acs_url"
+        ],
+        "title": "SamlSettingsStatus",
+        "type": "object"
+      },
+      "SamlSettingsValues": {
+        "properties": {
+          "acs_url": {
+            "title": "Acs Url",
+            "type": "string"
+          },
+          "button_label": {
+            "default": "",
+            "title": "Button Label",
+            "type": "string"
+          },
+          "email_attribute": {
+            "default": "",
+            "title": "Email Attribute",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "metadata_url": {
+            "title": "Metadata Url",
+            "type": "string"
+          },
+          "metadata_xml": {
+            "default": "",
+            "title": "Metadata Xml",
+            "type": "string"
+          },
+          "name_attribute": {
+            "default": "",
+            "title": "Name Attribute",
+            "type": "string"
+          },
+          "sp_entity_id": {
+            "title": "Sp Entity Id",
+            "type": "string"
+          },
+          "sp_private_key_set": {
+            "default": false,
+            "title": "Sp Private Key Set",
+            "type": "boolean"
+          },
+          "sp_x509_cert": {
+            "default": "",
+            "title": "Sp X509 Cert",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "metadata_url",
+          "sp_entity_id",
+          "acs_url"
+        ],
+        "title": "SamlSettingsValues",
+        "type": "object"
+      },
+      "SamlSettingsWrite": {
+        "description": "Save (or test) SAML settings. A blank/omitted ``sp_private_key`` keeps\nthe saved one; clearing ``sp_x509_cert`` drops the key too.",
+        "properties": {
+          "acs_url": {
+            "default": "",
+            "description": "Assertion consumer service URL registered at the IdP. Blank uses <first CORS origin>/api/auth/saml/acs.",
+            "maxLength": 500,
+            "title": "Acs Url",
+            "type": "string"
+          },
+          "button_label": {
+            "default": "",
+            "description": "Login button text; blank uses a default.",
+            "maxLength": 100,
+            "title": "Button Label",
+            "type": "string"
+          },
+          "email_attribute": {
+            "default": "",
+            "description": "Assertion attribute holding the email; blank tries common ones, then NameID.",
+            "maxLength": 500,
+            "title": "Email Attribute",
+            "type": "string"
+          },
+          "enabled": {
+            "default": false,
+            "description": "Show the SAML login button and accept SAML logins.",
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "metadata_url": {
+            "default": "",
+            "description": "URL of the IdP's SAML metadata.",
+            "maxLength": 500,
+            "title": "Metadata Url",
+            "type": "string"
+          },
+          "metadata_xml": {
+            "default": "",
+            "description": "The IdP's SAML metadata XML, instead of metadata_url.",
+            "maxLength": 200000,
+            "title": "Metadata Xml",
+            "type": "string"
+          },
+          "name_attribute": {
+            "default": "",
+            "description": "Assertion attribute holding the display name.",
+            "maxLength": 500,
+            "title": "Name Attribute",
+            "type": "string"
+          },
+          "sp_entity_id": {
+            "default": "azuregos",
+            "description": "Azuregos' entity ID (the SP).",
+            "maxLength": 500,
+            "title": "Sp Entity Id",
+            "type": "string"
+          },
+          "sp_private_key": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "PEM private key of sp_x509_cert. Blank or omitted keeps the saved one.",
+            "title": "Sp Private Key"
+          },
+          "sp_x509_cert": {
+            "default": "",
+            "description": "PEM certificate Azuregos signs requests with; clearing it drops the key.",
+            "maxLength": 20000,
+            "title": "Sp X509 Cert",
+            "type": "string"
+          }
+        },
+        "title": "SamlSettingsWrite",
+        "type": "object"
+      },
+      "SamlStoredSettings": {
+        "properties": {
+          "acs_url": {
+            "title": "Acs Url",
+            "type": "string"
+          },
+          "button_label": {
+            "default": "",
+            "title": "Button Label",
+            "type": "string"
+          },
+          "email_attribute": {
+            "default": "",
+            "title": "Email Attribute",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "metadata_url": {
+            "title": "Metadata Url",
+            "type": "string"
+          },
+          "metadata_xml": {
+            "default": "",
+            "title": "Metadata Xml",
+            "type": "string"
+          },
+          "name_attribute": {
+            "default": "",
+            "title": "Name Attribute",
+            "type": "string"
+          },
+          "sp_entity_id": {
+            "title": "Sp Entity Id",
+            "type": "string"
+          },
+          "sp_private_key_set": {
+            "default": false,
+            "title": "Sp Private Key Set",
+            "type": "boolean"
+          },
+          "sp_x509_cert": {
+            "default": "",
+            "title": "Sp X509 Cert",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          }
+        },
+        "required": [
+          "enabled",
+          "metadata_url",
+          "sp_entity_id",
+          "acs_url",
+          "updated_at"
+        ],
+        "title": "SamlStoredSettings",
+        "type": "object"
+      },
+      "SamlTestResult": {
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "idp_entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idp Entity Id"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "sso_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sso Url"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "SamlTestResult",
         "type": "object"
       },
       "SyncStatus": {
@@ -1869,15 +2498,14 @@
     },
     "/api/auth/providers": {
       "get": {
-        "description": "Tell the frontend which login buttons to render.",
+        "description": "Tell the frontend which login buttons to render, and their labels.",
         "operationId": "providers_api_auth_providers_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Providers Api Auth Providers Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/AuthProviders"
                 }
               }
             },
@@ -2457,6 +3085,280 @@
         "summary": "Get Portal",
         "tags": [
           "portals"
+        ]
+      }
+    },
+    "/api/sso/oidc": {
+      "delete": {
+        "description": "Remove the saved OIDC settings, reverting to the OIDC_* env vars.",
+        "operationId": "delete_oidc_api_sso_oidc_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Oidc",
+        "tags": [
+          "sso"
+        ]
+      },
+      "get": {
+        "description": "Which OIDC settings are in effect, plus the saved and env values (no secrets).",
+        "operationId": "get_oidc_api_sso_oidc_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OidcSettingsStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Oidc",
+        "tags": [
+          "sso"
+        ]
+      },
+      "put": {
+        "description": "Save OIDC settings; they then take precedence over the OIDC_* env vars.",
+        "operationId": "save_oidc_api_sso_oidc_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OidcSettingsWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OidcSettingsStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Save Oidc",
+        "tags": [
+          "sso"
+        ]
+      }
+    },
+    "/api/sso/oidc/test": {
+      "post": {
+        "description": "Fetch the discovery document without saving anything.\n\nThis checks the IdP is reachable and the URL is an OpenID configuration;\nthe client ID and secret can only be proven by a real sign-in.",
+        "operationId": "test_oidc_api_sso_oidc_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OidcSettingsWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OidcTestResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Test Oidc",
+        "tags": [
+          "sso"
+        ]
+      }
+    },
+    "/api/sso/saml": {
+      "delete": {
+        "description": "Remove the saved SAML settings, reverting to the SAML_* env vars.",
+        "operationId": "delete_saml_api_sso_saml_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Saml",
+        "tags": [
+          "sso"
+        ]
+      },
+      "get": {
+        "description": "Which SAML settings are in effect, plus the saved and env values (no key).",
+        "operationId": "get_saml_api_sso_saml_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SamlSettingsStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Saml",
+        "tags": [
+          "sso"
+        ]
+      },
+      "put": {
+        "description": "Save SAML settings; they then take precedence over the SAML_* env vars.",
+        "operationId": "save_saml_api_sso_saml_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SamlSettingsWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SamlSettingsStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Save Saml",
+        "tags": [
+          "sso"
+        ]
+      }
+    },
+    "/api/sso/saml/test": {
+      "post": {
+        "description": "Read the IdP metadata (and check the SP key pair) without saving anything.",
+        "operationId": "test_saml_api_sso_saml_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SamlSettingsWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SamlTestResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Test Saml",
+        "tags": [
+          "sso"
         ]
       }
     },

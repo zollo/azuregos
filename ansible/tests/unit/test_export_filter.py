@@ -41,3 +41,11 @@ def test_ids_become_names_and_secrets_never_appear():
 def test_no_saved_connection_is_left_out():
     out = export_config({"ado_connection_info": {"ado_connection": {"stored": None}}}, SPEC)
     assert "azuregos_ado_connection" not in out
+
+
+def test_export_role_reads_every_info_module_it_exports():
+    tasks = (Path(__file__).resolve().parents[2]
+             / "ansible_collections/zollo/azuregos/roles/export/tasks/main.yml").read_text()
+    for entry in SPEC:
+        assert f"zollo.azuregos.{entry['info']}:" in tasks, entry["info"]
+        assert f"'{entry['info']}': azuregos__{entry['info']}" in tasks, entry["info"]

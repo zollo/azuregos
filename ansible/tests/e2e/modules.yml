@@ -168,6 +168,65 @@
       register: r
     - ansible.builtin.assert: {that: ["r.ado_area_paths.area_paths == []"]}
 
+    # ── SSO (disabled, so the API doesn't contact an IdP) ──────────────
+    - name: Save OIDC settings
+      zollo.azuregos.oidc_settings:
+        enabled: false
+        discovery_url: https://idp.example.com/.well-known/openid-configuration
+        client_id: e2e-client
+        client_secret: e2e-secret
+        scopes: "openid   email"
+      register: r
+    - ansible.builtin.assert:
+        that: [r.changed, r.oidc_settings.stored.client_secret_set, r.oidc_settings.stored.scopes == 'openid email']
+    - name: Same again is a no-op (scopes compared as the API normalizes them)
+      zollo.azuregos.oidc_settings:
+        enabled: false
+        discovery_url: https://idp.example.com/.well-known/openid-configuration
+        client_id: e2e-client
+        client_secret: e2e-secret
+        scopes: "openid   email"
+      register: r
+    - ansible.builtin.assert: {that: [not r.changed]}
+    - name: Changing one option keeps the others
+      zollo.azuregos.oidc_settings: {button_label: Sign in with E2E}
+      register: r
+    - ansible.builtin.assert:
+        that:
+          - r.changed
+          - r.oidc_settings.stored.client_id == 'e2e-client'
+          - r.oidc_settings.stored.client_secret_set
+          - r.oidc_settings.stored.button_label == 'Sign in with E2E'
+    - name: Enabling without reachable discovery is the API's call
+      zollo.azuregos.oidc_settings_info:
+      register: r
+    - ansible.builtin.assert: {that: [r.oidc_settings.source == 'database', not r.oidc_settings.enabled]}
+    - name: Scopes without openid fail on the API's validation
+      zollo.azuregos.oidc_settings: {scopes: email}
+      register: r
+      ignore_errors: true
+    - ansible.builtin.assert: {that: [r.failed, "'openid' in r.msg"]}
+    - name: Delete the OIDC settings
+      zollo.azuregos.oidc_settings: {state: absent}
+      register: r
+    - ansible.builtin.assert: {that: [r.changed, r.oidc_settings.stored is none]}
+    - name: Save SAML settings
+      zollo.azuregos.saml_settings:
+        enabled: false
+        metadata_url: https://idp.example.com/saml/metadata
+        email_attribute: mail
+      register: r
+    - ansible.builtin.assert: {that: [r.changed, r.saml_settings.stored.sp_entity_id == 'azuregos']}
+    - name: Same SAML settings again is a no-op
+      zollo.azuregos.saml_settings:
+        enabled: false
+        metadata_url: https://idp.example.com/saml/metadata
+        email_attribute: mail
+      register: r
+    - ansible.builtin.assert: {that: [not r.changed]}
+    - name: Delete the SAML settings
+      zollo.azuregos.saml_settings: {state: absent}
+
     # ── clean up ───────────────────────────────────────────────────────
     - name: Delete the users
       zollo.azuregos.user: {email: "{{ item }}", state: absent}

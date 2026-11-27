@@ -290,6 +290,128 @@ modules:
       - ansible.builtin.assert:
           that: server.build.version is version('1.0.0', '>=')
 
+  oidc_settings:
+    kind: singleton
+    noun: OIDC sign-in configuration
+    short_description: Configure OpenID Connect (OIDC) single sign-on
+    description: >-
+      Save the OIDC settings Azuregos uses, including whether OIDC sign-in is
+      enabled. Saved settings replace the server's OIDC_* env vars as a whole;
+      state=absent deletes them, which reverts to the env vars. Options left
+      unset keep their saved values. The API checks the discovery URL before
+      saving an enabled configuration. The client secret is never returned, so
+      it is only sent when nothing is saved yet, unless update_client_secret is
+      always.
+    requires: a super_admin account.
+    read: GET /api/sso/oidc
+    read_key: stored
+    write: PUT /api/sso/oidc
+    delete: DELETE /api/sso/oidc
+    write_only: [client_secret]
+    normalize: {scopes: collapse_spaces}
+    return_key: oidc_settings
+    examples: |
+      - name: Sign in with Entra ID
+        zollo.azuregos.oidc_settings:
+          enabled: true
+          discovery_url: https://login.microsoftonline.com/{{ tenant_id }}/v2.0/.well-known/openid-configuration
+          client_id: "{{ entra_client_id }}"
+          client_secret: "{{ vault_entra_client_secret }}"
+          button_label: Sign in with Microsoft
+
+      - name: Turn OIDC off but keep the settings
+        zollo.azuregos.oidc_settings:
+          enabled: false
+
+  oidc_settings_test:
+    kind: action
+    short_description: Test OIDC settings without saving them
+    description: >-
+      Ask Azuregos to fetch an OIDC discovery document. Nothing is saved and
+      the task never reports a change.
+    requires: a super_admin account.
+    call: POST /api/sso/oidc/test
+    write_only: [client_secret]
+    return_key: result
+    examples: |
+      - zollo.azuregos.oidc_settings_test:
+          discovery_url: https://accounts.example.com/.well-known/openid-configuration
+        register: test
+        failed_when: not test.result.ok
+
+  oidc_settings_info:
+    kind: info
+    short_description: Show the OIDC sign-in configuration
+    description: >-
+      Show the saved and environment OIDC settings (never the secret), which
+      one is in effect, and the redirect URI to register with the IdP.
+    requires: a super_admin account.
+    read: GET /api/sso/oidc
+    return_key: oidc_settings
+    examples: |
+      - zollo.azuregos.oidc_settings_info:
+        register: oidc
+      - ansible.builtin.debug:
+          msg: "Register {{ oidc.oidc_settings.effective_redirect_uri }} at the IdP"
+
+  saml_settings:
+    kind: singleton
+    noun: SAML sign-in configuration
+    short_description: Configure SAML single sign-on
+    description: >-
+      Save the SAML settings Azuregos uses, including whether SAML sign-in is
+      enabled. Saved settings replace the server's SAML_* env vars as a whole;
+      state=absent deletes them, which reverts to the env vars. Options left
+      unset keep their saved values. The API checks the IdP metadata before
+      saving an enabled configuration. The SP private key is never returned,
+      so it is only sent when nothing is saved yet, unless
+      update_sp_private_key is always.
+    requires: a super_admin account.
+    read: GET /api/sso/saml
+    read_key: stored
+    write: PUT /api/sso/saml
+    delete: DELETE /api/sso/saml
+    write_only: [sp_private_key]
+    return_key: saml_settings
+    examples: |
+      - name: Sign in with Okta over SAML
+        zollo.azuregos.saml_settings:
+          enabled: true
+          metadata_url: https://contoso.okta.com/app/abc123/sso/saml/metadata
+          sp_entity_id: azuregos
+          email_attribute: email
+          button_label: Sign in with Okta
+
+  saml_settings_test:
+    kind: action
+    short_description: Test SAML settings without saving them
+    description: >-
+      Ask Azuregos to load and parse IdP metadata. Nothing is saved and the
+      task never reports a change.
+    requires: a super_admin account.
+    call: POST /api/sso/saml/test
+    write_only: [sp_private_key]
+    return_key: result
+    examples: |
+      - zollo.azuregos.saml_settings_test:
+          metadata_url: https://contoso.okta.com/app/abc123/sso/saml/metadata
+        register: test
+        failed_when: not test.result.ok
+
+  saml_settings_info:
+    kind: info
+    short_description: Show the SAML sign-in configuration
+    description: >-
+      Show the saved and environment SAML settings (never the private key),
+      which one is in effect, and the ACS URL and entity ID to register with
+      the IdP.
+    requires: a super_admin account.
+    read: GET /api/sso/saml
+    return_key: saml_settings
+    examples: |
+      - zollo.azuregos.saml_settings_info:
+        register: saml
+
 # Operations the collection deliberately doesn't wrap. Configuration only:
 # end-user and sign-in flows stay in the UI.
 ignore:
@@ -323,6 +445,10 @@ role:
   resources:
     - module: ado_connection
       var: azuregos_ado_connection
+    - module: oidc_settings
+      var: azuregos_oidc_settings
+    - module: saml_settings
+      var: azuregos_saml_settings
     - module: category
       var: azuregos_categories
     - module: portal

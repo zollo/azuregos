@@ -42,6 +42,8 @@ ansible-playbook zollo.azuregos.export "${auth[@]}" -e "azuregos_export_path=$wo
 cat "$work/export.yml"
 grep -q 'category: Hardware' "$work/export.yml"
 grep -q -- '- Request access' "$work/export.yml"
+grep -q 'client_id: e2e-client' "$work/export.yml"
+! grep -q 'e2e-secret' "$work/export.yml"
 ansible-playbook zollo.azuregos.configure "${auth[@]}" -e "@$work/export.yml" | tee "$work/3.log"
 expect_changed "$work/3.log" 0
 echo "e2e OK"

@@ -40,13 +40,36 @@ class OidcSettingsWrite(_Stripped):
     """Save (or test) OIDC settings. A blank/omitted ``client_secret`` keeps the
     saved one. Required fields are only enforced when ``enabled``."""
 
-    enabled: bool = False
-    discovery_url: str = Field(default="", max_length=500)
-    client_id: str = Field(default="", max_length=500)
-    client_secret: str | None = Field(default=None, max_length=2000)
-    redirect_uri: str = Field(default="", max_length=500)
-    scopes: str = Field(default="openid email profile", max_length=500)
-    button_label: str = Field(default="", max_length=100)
+    enabled: bool = Field(
+        default=False, description="Show the OIDC login button and accept OIDC logins."
+    )
+    discovery_url: str = Field(
+        default="",
+        max_length=500,
+        description="The IdP's OpenID configuration URL (.../.well-known/openid-configuration).",
+    )
+    client_id: str = Field(default="", max_length=500, description="Client ID at the IdP.")
+    client_secret: str | None = Field(
+        default=None,
+        max_length=2000,
+        description="Client secret at the IdP. Blank or omitted keeps the saved one.",
+    )
+    redirect_uri: str = Field(
+        default="",
+        max_length=500,
+        description=(
+            "Redirect URI registered at the IdP. Blank uses "
+            "<first CORS origin>/api/auth/oidc/callback."
+        ),
+    )
+    scopes: str = Field(
+        default="openid email profile",
+        max_length=500,
+        description="Space-separated scopes to request; must include openid.",
+    )
+    button_label: str = Field(
+        default="", max_length=100, description="Login button text; blank uses a default."
+    )
 
     @field_validator("discovery_url", "redirect_uri")
     @classmethod
@@ -105,16 +128,49 @@ class SamlSettingsWrite(_Stripped):
     """Save (or test) SAML settings. A blank/omitted ``sp_private_key`` keeps
     the saved one; clearing ``sp_x509_cert`` drops the key too."""
 
-    enabled: bool = False
-    metadata_url: str = Field(default="", max_length=500)
-    metadata_xml: str = Field(default="", max_length=200_000)
-    sp_entity_id: str = Field(default="azuregos", max_length=500)
-    acs_url: str = Field(default="", max_length=500)
-    sp_x509_cert: str = Field(default="", max_length=20_000)
-    sp_private_key: str | None = Field(default=None, max_length=20_000)
-    email_attribute: str = Field(default="", max_length=500)
-    name_attribute: str = Field(default="", max_length=500)
-    button_label: str = Field(default="", max_length=100)
+    enabled: bool = Field(
+        default=False, description="Show the SAML login button and accept SAML logins."
+    )
+    metadata_url: str = Field(
+        default="", max_length=500, description="URL of the IdP's SAML metadata."
+    )
+    metadata_xml: str = Field(
+        default="",
+        max_length=200_000,
+        description="The IdP's SAML metadata XML, instead of metadata_url.",
+    )
+    sp_entity_id: str = Field(
+        default="azuregos", max_length=500, description="Azuregos' entity ID (the SP)."
+    )
+    acs_url: str = Field(
+        default="",
+        max_length=500,
+        description=(
+            "Assertion consumer service URL registered at the IdP. Blank uses "
+            "<first CORS origin>/api/auth/saml/acs."
+        ),
+    )
+    sp_x509_cert: str = Field(
+        default="",
+        max_length=20_000,
+        description="PEM certificate Azuregos signs requests with; clearing it drops the key.",
+    )
+    sp_private_key: str | None = Field(
+        default=None,
+        max_length=20_000,
+        description="PEM private key of sp_x509_cert. Blank or omitted keeps the saved one.",
+    )
+    email_attribute: str = Field(
+        default="",
+        max_length=500,
+        description="Assertion attribute holding the email; blank tries common ones, then NameID.",
+    )
+    name_attribute: str = Field(
+        default="", max_length=500, description="Assertion attribute holding the display name."
+    )
+    button_label: str = Field(
+        default="", max_length=100, description="Login button text; blank uses a default."
+    )
 
     @field_validator("metadata_url", "acs_url")
     @classmethod

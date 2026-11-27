@@ -233,6 +233,7 @@ def _sort_key(value):
 NORMALIZERS = {
     "rstrip_slash": lambda v: v.rstrip("/") if isinstance(v, str) else v,
     "strip": lambda v: v.strip() if isinstance(v, str) else v,
+    "collapse_spaces": lambda v: " ".join(v.split()) if isinstance(v, str) else v,
 }
 
 
@@ -426,8 +427,12 @@ class ResourceRunner(object):
         secrets = self.secret_changes(existing=current is not None)
         if not changes and not secrets:
             return {result_key: status}
-        payload = dict(wanted)
-        for name in write_only:  # a blank secret keeps the saved one
+        # PUT replaces the whole object: start from the saved values so options
+        # left unset keep them instead of falling back to the API's defaults.
+        payload = dict((k, current[k]) for k in fields
+                       if current and k in current and k not in write_only)
+        payload.update(wanted)
+        for name in write_only:  # an omitted secret keeps the saved one
             if name not in secrets:
                 payload.pop(name, None)
         self.validate("write", payload)

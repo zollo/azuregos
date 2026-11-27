@@ -5,8 +5,9 @@ argument_specs:
   main:
     short_description: Apply an Azuregos configuration from variables
     description:
-    - Waits for the API, signs in once, then applies azuregos_ado_connection, azuregos_categories,
-      azuregos_portals, azuregos_users in that order.
+    - Waits for the API, signs in once, then applies azuregos_ado_connection, azuregos_oidc_settings,
+      azuregos_saml_settings, azuregos_categories, azuregos_portals, azuregos_users in that
+      order.
     - Each variable's items take the options of the matching module, checked against the API's
       schema before anything is sent.
     options:
@@ -82,6 +83,163 @@ argument_specs:
           ADO_* env vars; state=absent deletes it, which reverts to the env vars. The API
           checks the values against Azure DevOps before saving. The PAT is never returned,
           so it is only sent when no connection is saved yet, unless update_pat is always.'
+        - Left unset, the role doesn't touch it.
+      azuregos_oidc_settings:
+        type: dict
+        options:
+          button_label:
+            type: str
+            description:
+            - Login button text; blank uses a default.
+            - At most 100 characters.
+            - The API uses an empty string when creating.
+          client_id:
+            type: str
+            description:
+            - Client ID at the IdP.
+            - At most 500 characters.
+            - The API uses an empty string when creating.
+          client_secret:
+            type: str
+            description:
+            - Client secret at the IdP. Blank or omitted keeps the saved one.
+            - At most 2000 characters.
+          discovery_url:
+            type: str
+            description:
+            - The IdP's OpenID configuration URL (.../.well-known/openid-configuration).
+            - At most 500 characters.
+            - The API uses an empty string when creating.
+          enabled:
+            type: bool
+            description:
+            - Show the OIDC login button and accept OIDC logins.
+            - The API uses C(false) when creating.
+          redirect_uri:
+            type: str
+            description:
+            - Redirect URI registered at the IdP. Blank uses <first CORS origin>/api/auth/oidc/callback.
+            - At most 500 characters.
+            - The API uses an empty string when creating.
+          scopes:
+            type: str
+            description:
+            - Space-separated scopes to request; must include openid.
+            - At most 500 characters.
+            - The API uses C("openid email profile") when creating.
+          state:
+            type: str
+            description:
+            - Whether the OIDC sign-in configuration should exist.
+            choices:
+            - present
+            - absent
+            default: present
+          update_client_secret:
+            type: str
+            description:
+            - C(on_create) sends O(client_secret) only when the OIDC sign-in configuration
+              is created, so the task stays idempotent (the API never returns it).
+            - C(always) sends it on every run and always reports a change.
+            choices:
+            - always
+            - on_create
+            default: on_create
+        description:
+        - 'Options of zollo.azuregos.oidc_settings: Save the OIDC settings Azuregos uses,
+          including whether OIDC sign-in is enabled. Saved settings replace the server''s
+          OIDC_* env vars as a whole; state=absent deletes them, which reverts to the env
+          vars. Options left unset keep their saved values. The API checks the discovery URL
+          before saving an enabled configuration. The client secret is never returned, so
+          it is only sent when nothing is saved yet, unless update_client_secret is always.'
+        - Left unset, the role doesn't touch it.
+      azuregos_saml_settings:
+        type: dict
+        options:
+          acs_url:
+            type: str
+            description:
+            - Assertion consumer service URL registered at the IdP. Blank uses <first CORS
+              origin>/api/auth/saml/acs.
+            - At most 500 characters.
+            - The API uses an empty string when creating.
+          button_label:
+            type: str
+            description:
+            - Login button text; blank uses a default.
+            - At most 100 characters.
+            - The API uses an empty string when creating.
+          email_attribute:
+            type: str
+            description:
+            - Assertion attribute holding the email; blank tries common ones, then NameID.
+            - At most 500 characters.
+            - The API uses an empty string when creating.
+          enabled:
+            type: bool
+            description:
+            - Show the SAML login button and accept SAML logins.
+            - The API uses C(false) when creating.
+          metadata_url:
+            type: str
+            description:
+            - URL of the IdP's SAML metadata.
+            - At most 500 characters.
+            - The API uses an empty string when creating.
+          metadata_xml:
+            type: str
+            description:
+            - The IdP's SAML metadata XML, instead of metadata_url.
+            - At most 200000 characters.
+            - The API uses an empty string when creating.
+          name_attribute:
+            type: str
+            description:
+            - Assertion attribute holding the display name.
+            - At most 500 characters.
+            - The API uses an empty string when creating.
+          sp_entity_id:
+            type: str
+            description:
+            - Azuregos' entity ID (the SP).
+            - At most 500 characters.
+            - The API uses C("azuregos") when creating.
+          sp_private_key:
+            type: str
+            description:
+            - PEM private key of sp_x509_cert. Blank or omitted keeps the saved one.
+            - At most 20000 characters.
+          sp_x509_cert:
+            type: str
+            description:
+            - PEM certificate Azuregos signs requests with; clearing it drops the key.
+            - At most 20000 characters.
+            - The API uses an empty string when creating.
+          state:
+            type: str
+            description:
+            - Whether the SAML sign-in configuration should exist.
+            choices:
+            - present
+            - absent
+            default: present
+          update_sp_private_key:
+            type: str
+            description:
+            - C(on_create) sends O(sp_private_key) only when the SAML sign-in configuration
+              is created, so the task stays idempotent (the API never returns it).
+            - C(always) sends it on every run and always reports a change.
+            choices:
+            - always
+            - on_create
+            default: on_create
+        description:
+        - 'Options of zollo.azuregos.saml_settings: Save the SAML settings Azuregos uses,
+          including whether SAML sign-in is enabled. Saved settings replace the server''s
+          SAML_* env vars as a whole; state=absent deletes them, which reverts to the env
+          vars. Options left unset keep their saved values. The API checks the IdP metadata
+          before saving an enabled configuration. The SP private key is never returned, so
+          it is only sent when nothing is saved yet, unless update_sp_private_key is always.'
         - Left unset, the role doesn't touch it.
       azuregos_categories:
         type: list

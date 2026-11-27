@@ -22,3 +22,4 @@ issues: https://github.com/zollo/azuregos/issues
 build_ignore:
   - tests/output
   - "*.tar.gz"
+  - .gitignore

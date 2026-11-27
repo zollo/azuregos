@@ -24,6 +24,12 @@
     - name: Read the ADO connection
       zollo.azuregos.ado_connection_info:
       register: azuregos__ado_connection_info
+    - name: Read the OIDC settings
+      zollo.azuregos.oidc_settings_info:
+      register: azuregos__oidc_settings_info
+    - name: Read the SAML settings
+      zollo.azuregos.saml_settings_info:
+      register: azuregos__saml_settings_info
     - name: Read the categories
       zollo.azuregos.category_info:
       register: azuregos__category_info
@@ -41,9 +47,12 @@
         content: |
           # Exported from {{ azuregos_url }} by zollo.azuregos.export.
           # Feed it to the zollo.azuregos.configure role. Secrets aren't exported:
-          # add azuregos_ado_connection.pat and user passwords (e.g. from a vault).
+          # add the ADO PAT, the OIDC client secret, the SAML SP key and user
+          # passwords (e.g. from a vault).
           {{ {
                'ado_connection_info': azuregos__ado_connection_info,
+               'oidc_settings_info': azuregos__oidc_settings_info,
+               'saml_settings_info': azuregos__saml_settings_info,
                'category_info': azuregos__category_info,
                'portal_info': azuregos__portal_info,
                'user_info': azuregos__user_info,

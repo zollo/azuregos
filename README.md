@@ -194,6 +194,25 @@ gh attestation verify "oci://$IMAGE" --repo zollo/azuregos
 Everything the web app does goes through a REST API under `/api`. Interactive
 docs are served at `/docs`, and the OpenAPI spec at `/openapi.json`.
 
+## Ansible
+
+The `zollo.azuregos` collection configures an instance through that API: the
+ADO connection, OIDC/SAML sign-in, categories, portals and users, either one
+module at a time or all at once from a vars file with the `configure` role
+(and `export` writes an existing instance's configuration as that file). Its
+modules are generated from the OpenAPI spec, and a new collection version is
+attached to each GitHub release that changes the API. It isn't on Ansible
+Galaxy; install it from the release:
+
+```bash
+ansible-galaxy collection install \
+  https://github.com/zollo/azuregos/releases/download/vX.Y.Z/zollo-azuregos-X.Y.Z.tar.gz
+ansible-playbook zollo.azuregos.configure -e @azuregos-config.yml
+```
+
+See the [collection README](ansible/ansible_collections/zollo/azuregos/README.md)
+for usage and [`ansible/README.md`](ansible/README.md) for how it's generated.
+
 ## Development
 
 ```bash

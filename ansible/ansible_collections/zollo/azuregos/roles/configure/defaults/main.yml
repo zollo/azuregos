@@ -6,13 +6,22 @@ azuregos_validate_certs: true
 azuregos_wait_timeout: 300
 
 # What to configure. Each item takes the options of the module of the same
-# name (zollo.azuregos.category, .portal, .user, .ado_connection), plus
+# name (zollo.azuregos.category, .portal, .user, .ado_connection,
+# .oidc_settings, .saml_settings), plus
 # `category` (a name) on portals and `portals` (names) on users.
 # Unset options are left as they are; `state: absent` deletes.
 # azuregos_ado_connection:
 #   org_url: https://dev.azure.com/contoso
 #   pat: "{{ vault_ado_pat }}"
 #   default_project: IT
+# azuregos_oidc_settings:
+#   enabled: true
+#   discovery_url: https://login.microsoftonline.com/<tenant>/v2.0/.well-known/openid-configuration
+#   client_id: ...
+#   client_secret: "{{ vault_oidc_client_secret }}"
+# azuregos_saml_settings:
+#   enabled: true
+#   metadata_url: https://idp.example.com/metadata
 azuregos_categories: []
 azuregos_portals: []
 azuregos_users: []
