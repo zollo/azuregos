@@ -33,6 +33,13 @@ npm test                             # vitest
 npx vitest run src/api/client.test.ts   # single test file
 ```
 
+MCP server (`cd mcp-server`):
+```bash
+pip install -e ".[dev]"
+ruff check . && pytest -q
+python -m azuregos_mcp.catalog       # regenerate TOOLS.md (after backend/scripts/export_openapi.py)
+```
+
 The primary dev box (WSL) has no `pip`, `node`, or `docker`, so local checks are limited to `python3 -m compileall`; CI is the real validator for lint, `tsc`, tests, and container builds.
 
 ## Architecture
@@ -59,6 +66,8 @@ The primary dev box (WSL) has no `pip`, `node`, or `docker`, so local checks are
 
 **Branding:** the mark (azure crystal crossed by a ticket on a light blue rounded square, styled after Navi's logo) is rendered by `frontend/scripts/make_icons.py` (Pillow) into `frontend/public/`: `icons/logo-256.png` (used by `components/Logo.tsx`), `favicon.ico`, `icons/favicon-32.png`, `apple-touch-icon.png` (full-bleed), 192/512 + maskable PWA icons; `site.webmanifest` and the `<link>`s are in `index.html`. Edit the script and re-run it rather than editing the PNGs. Brand blues are `--brand-gradient` / `--button-gradient` / `--primary` in `index.css`; keep the script's `GRADIENT` and `--brand-gradient` in step.
 
+**OpenAPI contract & MCP server** (`app/api/openapi.py`, `mcp-server/`): operation IDs are the route function names (`generate_unique_id_function`), so route functions must be unique, descriptive verbs (`list_ado_projects`, not `list_projects`); renaming one renames its MCP tool. `docs/openapi.json` is a committed snapshot of the spec. `mcp-server/` (package `azuregos_mcp`, own `pyproject.toml`, stdio) builds one tool per operation from the live instance's `/openapi.json` at startup: path/query params are arguments, the JSON body is `body`, `$ref`s are inlined. There's nothing per-endpoint to hand-write, but **every API change must ship with** `cd backend && python scripts/export_openapi.py` and `cd mcp-server && python -m azuregos_mcp.catalog` (regenerates `TOOLS.md`); CI fails otherwise (`tests/test_openapi.py`, `mcp-server/tests/test_spec.py`). A route the MCP server can't meaningfully call (browser redirect, an endpoint returning a bearer token) gets `openapi_extra=mcp_exclude("<reason>")`; everything else is a tool. Only `application/json` bodies and path/query params are supported: a form/multipart/header-param route fails the MCP tests until `spec.py` learns it.
+
 **Build info:** `APP_VERSION`/`GIT_COMMIT`/`BUILD_TIME` build-args are baked into both images (backend `AZUREGOS_*` env, frontend `VITE_*`), surfaced by auth-only `GET /api/build-info` and the `/info` page. Keep these ARGs late in the Dockerfiles to avoid busting cached layers.
 
 ## Gotchas (each has bitten this repo)
@@ -74,7 +83,7 @@ The primary dev box (WSL) has no `pip`, `node`, or `docker`, so local checks are
 
 ## CI, releases & conventions
 
-`.github/workflows/ci.yml`: backend (ruff + pytest), frontend (build + vitest), smoke (base compose boots the backend and asserts `/api/health/ready` reports `database: true`) on every PR and push. **Only on push to `main`:** `version` computes the next semver (seeded at `v1.0.0`; `mathieudutour/github-tag-action` thereafter), tags and creates a GitHub release; `images` builds both images tagged `latest`/`X.Y.Z`/`X.Y`/`sha-<short>`, signs them with cosign (keyless OIDC) and pushes a build-provenance attestation. These two jobs can't be exercised on a PR branch.
+`.github/workflows/ci.yml`: backend (ruff + pytest, incl. the `docs/openapi.json` freshness check), mcp (ruff + pytest, API parity + `TOOLS.md` freshness), frontend (build + vitest), smoke (base compose boots the backend and asserts `/api/health/ready` reports `database: true`) on every PR and push. **Only on push to `main`:** `version` computes the next semver (seeded at `v1.0.0`; `mathieudutour/github-tag-action` thereafter), tags and creates a GitHub release; `images` builds both images tagged `latest`/`X.Y.Z`/`X.Y`/`sha-<short>`, signs them with cosign (keyless OIDC) and pushes a build-provenance attestation. These two jobs can't be exercised on a PR branch.
 
 The repo is **squash-merge only**, with the squash commit title = PR title, and merged branches are auto-deleted. The PR title therefore drives the version bump and must be a Conventional Commit (enforced by `.github/workflows/pr-title.yml`): `feat:` → minor, `fix:`/other types → patch, `!` or a `BREAKING CHANGE` footer → major. Work happens on a branch with a PR into `main` (see `CONTRIBUTING.md`).
 

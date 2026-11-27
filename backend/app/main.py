@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.openapi import mcp_exclude, operation_id
 from app.api.routes import api_router
 from app.config import settings
 from app.db import AsyncSessionLocal
@@ -48,6 +49,7 @@ app = FastAPI(
     description="A service-desk front end for Azure DevOps.",
     version=settings.app_version,
     lifespan=lifespan,
+    generate_unique_id_function=operation_id,
 )
 
 app.add_middleware(
@@ -61,6 +63,6 @@ app.add_middleware(
 app.include_router(api_router)
 
 
-@app.get("/")
+@app.get("/", openapi_extra=mcp_exclude("Service banner; use health and build_info."))
 async def root() -> dict:
     return {"name": "Azuregos", "version": app.version, "docs": "/docs"}
