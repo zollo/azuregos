@@ -13,6 +13,7 @@ import AdminAdoConnection from "./pages/admin/AdminAdoConnection";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPortalEditor from "./pages/admin/AdminPortalEditor";
 import AdminPortals from "./pages/admin/AdminPortals";
+import AdminSso from "./pages/admin/AdminSso";
 import AdminTickets from "./pages/admin/AdminTickets";
 import AdminUsers from "./pages/admin/AdminUsers";
 
@@ -70,6 +71,7 @@ export default function App() {
         }
       >
         <Route path="/admin/ado" element={<AdminAdoConnection />} />
+        <Route path="/admin/sso" element={<AdminSso />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

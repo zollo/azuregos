@@ -7,13 +7,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.api.openapi import mcp_exclude
-from app.config import settings
 from app.core.auth_providers import oidc, saml
 from app.core.security import create_access_token
 from app.db import get_db
 from app.models.user import AuthProvider, User
+from app.schemas.sso import AuthProviders
 from app.schemas.user import LoginRequest, RegisterRequest, Token, UserRead
 from app.services import user_service
+from app.services.sso_settings import (
+    ResolvedOidc,
+    ResolvedSaml,
+    frontend_url,
+    resolve_oidc,
+    resolve_saml,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -22,11 +29,6 @@ _CREDENTIAL_EXCHANGE = mcp_exclude(
     "hand tokens to the model."
 )
 _BROWSER_FLOW = mcp_exclude("Browser redirect step of federated login.")
-
-
-def _frontend_url() -> str:
-    origins = settings.cors_origin_list
-    return origins[0] if origins else "http://localhost:8080"
 
 
 def _token_for(user: User) -> Token:
@@ -70,18 +72,42 @@ async def me(user: User = Depends(get_current_user)) -> User:
     return user
 
 
-@router.get("/providers")
-async def providers() -> dict:
-    """Tell the frontend which login buttons to render."""
-    return {"local": True, "oidc": settings.oidc_enabled, "saml": settings.saml_enabled}
+@router.get("/providers", response_model=AuthProviders)
+async def providers(db: AsyncSession = Depends(get_db)) -> AuthProviders:
+    """Tell the frontend which login buttons to render, and their labels."""
+    oidc_cfg = await resolve_oidc(db)
+    saml_cfg = await resolve_saml(db)
+    return AuthProviders(
+        local=True,
+        oidc=oidc_cfg.active,
+        saml=saml_cfg.active,
+        oidc_label=oidc_cfg.label,
+        saml_label=saml_cfg.label,
+    )
+
+
+def _login_redirect(user: User, status_code: int = 307) -> RedirectResponse:
+    token = create_access_token(user.id, extra={"role": user.role.value})
+    return RedirectResponse(
+        f"{frontend_url()}/auth/callback#token={token}", status_code=status_code
+    )
 
 
 # ── OIDC / OAuth2 ────────────────────────────────────────────────────────
-@router.get("/oidc/login", openapi_extra=_BROWSER_FLOW)
-async def oidc_login() -> RedirectResponse:
-    if not settings.oidc_enabled:
+async def _active_oidc(db: AsyncSession) -> ResolvedOidc:
+    cfg = await resolve_oidc(db)
+    if not cfg.active:
         raise HTTPException(status_code=404, detail="OIDC not enabled")
-    url = await oidc.authorization_url()
+    return cfg
+
+
+@router.get("/oidc/login", openapi_extra=_BROWSER_FLOW)
+async def oidc_login(db: AsyncSession = Depends(get_db)) -> RedirectResponse:
+    cfg = await _active_oidc(db)
+    try:
+        url = await oidc.authorization_url(cfg)
+    except oidc.OIDCError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return RedirectResponse(url)
 
 
@@ -89,10 +115,12 @@ async def oidc_login() -> RedirectResponse:
 async def oidc_callback(
     code: str, state: str, db: AsyncSession = Depends(get_db)
 ) -> RedirectResponse:
-    if not settings.oidc_enabled:
-        raise HTTPException(status_code=404, detail="OIDC not enabled")
-    oidc.verify_state(state)
-    claims = await oidc.exchange_code(code)
+    cfg = await _active_oidc(db)
+    try:
+        oidc.verify_state(state)
+    except oidc.OIDCError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    claims = await oidc.exchange_code(cfg, code)
     email = claims.get("email")
     subject = claims.get("sub")
     if not email or not subject:
@@ -104,8 +132,7 @@ async def oidc_callback(
         email=email,
         display_name=claims.get("name", ""),
     )
-    token = create_access_token(user.id, extra={"role": user.role.value})
-    return RedirectResponse(f"{_frontend_url()}/auth/callback#token={token}")
+    return _login_redirect(user)
 
 
 # ── SAML ─────────────────────────────────────────────────────────────────
@@ -123,29 +150,33 @@ async def _saml_request_data(request: Request) -> dict:
     }
 
 
-@router.get("/saml/login", openapi_extra=_BROWSER_FLOW)
-async def saml_login(request: Request) -> RedirectResponse:
-    if not settings.saml_enabled:
+async def _active_saml(db: AsyncSession) -> ResolvedSaml:
+    cfg = await resolve_saml(db)
+    if not cfg.active:
         raise HTTPException(status_code=404, detail="SAML not enabled")
-    url = saml.login_redirect_url(await _saml_request_data(request))
+    return cfg
+
+
+@router.get("/saml/login", openapi_extra=_BROWSER_FLOW)
+async def saml_login(request: Request, db: AsyncSession = Depends(get_db)) -> RedirectResponse:
+    cfg = await _active_saml(db)
+    try:
+        url = saml.login_redirect_url(cfg, await _saml_request_data(request))
+    except saml.SAMLError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return RedirectResponse(url)
 
 
 @router.post("/saml/acs", openapi_extra=_BROWSER_FLOW)
 async def saml_acs(request: Request, db: AsyncSession = Depends(get_db)) -> RedirectResponse:
-    if not settings.saml_enabled:
-        raise HTTPException(status_code=404, detail="SAML not enabled")
+    cfg = await _active_saml(db)
     try:
-        result = saml.process_acs(await _saml_request_data(request))
+        result = saml.process_acs(cfg, await _saml_request_data(request))
     except saml.SAMLError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
     nameid = result["nameid"]
-    attrs = result["attributes"]
-    email = _first(attrs.get("email")) or _first(attrs.get(
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
-    )) or nameid
-    name = _first(attrs.get("displayName")) or ""
+    email, name = saml.identity_from(cfg, nameid, result["attributes"])
     user = await user_service.upsert_federated_user(
         db,
         provider=AuthProvider.saml,
@@ -153,13 +184,4 @@ async def saml_acs(request: Request, db: AsyncSession = Depends(get_db)) -> Redi
         email=email,
         display_name=name,
     )
-    token = create_access_token(user.id, extra={"role": user.role.value})
-    return RedirectResponse(
-        f"{_frontend_url()}/auth/callback#token={token}", status_code=303
-    )
-
-
-def _first(value):
-    if isinstance(value, list):
-        return value[0] if value else None
-    return value
+    return _login_redirect(user, status_code=303)

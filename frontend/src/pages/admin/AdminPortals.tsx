@@ -45,6 +45,7 @@ export default function AdminPortals() {
           {full && <Link className="btn secondary" to="/admin/categories">Categories</Link>}
           {full && <Link className="btn secondary" to="/admin/users">Users</Link>}
           {isSuperAdmin(user) && <Link className="btn secondary" to="/admin/ado">Azure DevOps</Link>}
+          {isSuperAdmin(user) && <Link className="btn secondary" to="/admin/sso">Single sign-on</Link>}
           {full && <Link className="btn" to="/admin/portals/new">+ New Portal</Link>}
         </div>
       </div>
