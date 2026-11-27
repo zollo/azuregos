@@ -1,0 +1,5 @@
+---
+# Where to write the configuration (on the controller). Its variables are the
+# ones zollo.azuregos.configure takes, so the file can be fed straight back.
+azuregos_export_path: "{{ playbook_dir }}/azuregos-config.yml"
+azuregos_validate_certs: true

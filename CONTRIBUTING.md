@@ -34,9 +34,28 @@ PR body.
   (e.g. `fix: handle empty area path`, not `Fixed the bug.`).
 - Use a scope when it helps: `feat(portals): …`, `fix(ci): …`.
 
+## API changes and the Ansible collection
+
+The `zollo.azuregos` Ansible collection is generated from the API's OpenAPI
+spec. After any change to routes or `backend/app/schemas/`, run
+
+```bash
+pip install ./backend ansible-core
+python ansible/generator/generate.py --export-spec
+```
+
+and commit the result (`docs/openapi.json` and the regenerated modules).
+CI fails when they're stale, and also when a new endpoint is neither wrapped by
+a module nor listed under `ignore` in `ansible/generator/resources.yml`. Write
+option descriptions as `Field(description=...)` in the schemas: they become the
+module docs. See [`ansible/README.md`](ansible/README.md).
+
 ## Releases
 
 On merge to `main`, CI computes the next `vX.Y.Z` from the PR title, tags it,
 creates a GitHub release, and builds/signs/attests the container images
-(`latest`, `X.Y.Z`, `X.Y`, `sha-<short>`). See the README's **CI / releases**
+(`latest`, `X.Y.Z`, `X.Y`, `sha-<short>`). When anything under `ansible/`
+changed since the last collection release, the Ansible collection is built as
+`zollo-azuregos-X.Y.Z.tar.gz` and attached to the same release (never to
+Galaxy). See the README's **CI / releases**
 section.

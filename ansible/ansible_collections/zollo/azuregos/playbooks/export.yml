@@ -1,0 +1,9 @@
+---
+# ansible-playbook zollo.azuregos.export -e azuregos_url=... -e azuregos_username=... -e azuregos_password=...
+# Writes the instance's current configuration as configure-role variables.
+- name: Export an Azuregos configuration
+  hosts: "{{ azuregos_hosts | default('localhost') }}"
+  connection: local
+  gather_facts: false
+  roles:
+    - role: zollo.azuregos.export

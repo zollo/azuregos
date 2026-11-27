@@ -1,0 +1,25 @@
+# The version is stamped at release time from the Azuregos release
+# (.github/workflows/ci.yml, job "collection"): collection X.Y.Z matches
+# server vX.Y.Z. This collection is released on GitHub only, never on Galaxy.
+namespace: zollo
+name: azuregos
+version: 0.0.0
+readme: README.md
+authors:
+  - Azuregos contributors
+description: Configure an Azuregos instance (portals, categories, users, Azure DevOps connection) through its REST API.
+license:
+  - GPL-3.0-or-later
+tags:
+  - azuregos
+  - azuredevops
+  - servicedesk
+  - api
+dependencies: {}
+repository: https://github.com/zollo/azuregos
+documentation: https://github.com/zollo/azuregos/tree/main/ansible/ansible_collections/zollo/azuregos
+issues: https://github.com/zollo/azuregos/issues
+build_ignore:
+  - tests/output
+  - "*.tar.gz"
+  - .gitignore

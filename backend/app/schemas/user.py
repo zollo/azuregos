@@ -8,17 +8,23 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.user import AuthProvider, UserRole
 
+_DISPLAY_NAME = "Name shown in the UI and on ADO comments."
+_ROLE = (
+    "super_admin > admin > portal_admin > end_user. Only a super admin can grant super_admin."
+)
+_PASSWORD = "Password for local sign-in."
+_PORTAL_IDS = "IDs of the portals a portal_admin manages; ignored for other roles."
+
 
 class UserBase(BaseModel):
-    email: EmailStr
-    display_name: str = ""
-    role: UserRole = UserRole.end_user
+    email: EmailStr = Field(description="Sign-in email address; it can't be changed later.")
+    display_name: str = Field(default="", description=_DISPLAY_NAME)
+    role: UserRole = Field(default=UserRole.end_user, description=_ROLE)
 
 
 class UserCreate(UserBase):
-    password: str = Field(min_length=8, max_length=128)
-    # Portals a portal admin may edit; ignored for other roles.
-    portal_ids: list[uuid.UUID] = []
+    password: str = Field(min_length=8, max_length=128, description=_PASSWORD)
+    portal_ids: list[uuid.UUID] = Field(default=[], description=_PORTAL_IDS)
 
 
 class UserRead(UserBase):
@@ -32,11 +38,15 @@ class UserRead(UserBase):
 
 
 class UserUpdate(BaseModel):
-    display_name: str | None = None
-    role: UserRole | None = None
-    is_active: bool | None = None
-    password: str | None = Field(default=None, min_length=8, max_length=128)
-    portal_ids: list[uuid.UUID] | None = None
+    display_name: str | None = Field(default=None, description=_DISPLAY_NAME)
+    role: UserRole | None = Field(default=None, description=_ROLE)
+    is_active: bool | None = Field(
+        default=None, description="Whether the account can sign in."
+    )
+    password: str | None = Field(
+        default=None, min_length=8, max_length=128, description=_PASSWORD
+    )
+    portal_ids: list[uuid.UUID] | None = Field(default=None, description=_PORTAL_IDS)
 
 
 class LoginRequest(BaseModel):

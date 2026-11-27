@@ -103,11 +103,13 @@
         "properties": {
           "default_project": {
             "default": "",
+            "description": "Project used by portals that don't name one.",
             "maxLength": 200,
             "title": "Default Project",
             "type": "string"
           },
           "org_url": {
+            "description": "Organization URL, e.g. https://dev.azure.com/your-org.",
             "maxLength": 500,
             "minLength": 1,
             "title": "Org Url",
@@ -123,6 +125,7 @@
                 "type": "null"
               }
             ],
+            "description": "Personal access token. Blank keeps the saved one.",
             "title": "Pat"
           }
         },
@@ -262,15 +265,18 @@
         "properties": {
           "description": {
             "default": "",
+            "description": "Description shown in the catalog (Markdown).",
             "title": "Description",
             "type": "string"
           },
           "icon": {
             "default": "",
+            "description": "Lucide icon name; empty uses the default icon.",
             "title": "Icon",
             "type": "string"
           },
           "name": {
+            "description": "Display name. The URL slug is derived from it.",
             "maxLength": 120,
             "minLength": 1,
             "title": "Name",
@@ -278,6 +284,7 @@
           },
           "sort_order": {
             "default": 0,
+            "description": "Position in the catalog; lower numbers come first.",
             "title": "Sort Order",
             "type": "integer"
           }
@@ -297,11 +304,13 @@
           },
           "description": {
             "default": "",
+            "description": "Description shown in the catalog (Markdown).",
             "title": "Description",
             "type": "string"
           },
           "icon": {
             "default": "",
+            "description": "Lucide icon name; empty uses the default icon.",
             "title": "Icon",
             "type": "string"
           },
@@ -311,6 +320,7 @@
             "type": "string"
           },
           "name": {
+            "description": "Display name. The URL slug is derived from it.",
             "maxLength": 120,
             "minLength": 1,
             "title": "Name",
@@ -322,6 +332,7 @@
           },
           "sort_order": {
             "default": 0,
+            "description": "Position in the catalog; lower numbers come first.",
             "title": "Sort Order",
             "type": "integer"
           }
@@ -346,6 +357,7 @@
                 "type": "null"
               }
             ],
+            "description": "Description shown in the catalog (Markdown).",
             "title": "Description"
           },
           "icon": {
@@ -357,6 +369,7 @@
                 "type": "null"
               }
             ],
+            "description": "Lucide icon name; empty uses the default icon.",
             "title": "Icon"
           },
           "name": {
@@ -370,6 +383,7 @@
                 "type": "null"
               }
             ],
+            "description": "Display name. The URL slug is derived from it.",
             "title": "Name"
           },
           "sort_order": {
@@ -381,6 +395,7 @@
                 "type": "null"
               }
             ],
+            "description": "Position in the catalog; lower numbers come first.",
             "title": "Sort Order"
           }
         },
@@ -396,11 +411,13 @@
           },
           "description": {
             "default": "",
+            "description": "Description shown in the catalog (Markdown).",
             "title": "Description",
             "type": "string"
           },
           "icon": {
             "default": "",
+            "description": "Lucide icon name; empty uses the default icon.",
             "title": "Icon",
             "type": "string"
           },
@@ -410,6 +427,7 @@
             "type": "string"
           },
           "name": {
+            "description": "Display name. The URL slug is derived from it.",
             "maxLength": 120,
             "minLength": 1,
             "title": "Name",
@@ -426,6 +444,7 @@
           },
           "sort_order": {
             "default": 0,
+            "description": "Position in the catalog; lower numbers come first.",
             "title": "Sort Order",
             "type": "integer"
           }
@@ -466,6 +485,7 @@
                 "type": "null"
               }
             ],
+            "description": "ADO field reference name to map the value onto, e.g. Microsoft.VSTS.Common.Priority. Unmapped values go into the description.",
             "title": "Ado Field Ref"
           },
           "default": {
@@ -477,20 +497,24 @@
                 "type": "null"
               }
             ],
+            "description": "Initial value of the input.",
             "title": "Default"
           },
           "help_text": {
             "default": "",
+            "description": "Help text shown under the input.",
             "title": "Help Text",
             "type": "string"
           },
           "label": {
+            "description": "Label shown on the form.",
             "maxLength": 200,
             "minLength": 1,
             "title": "Label",
             "type": "string"
           },
           "name": {
+            "description": "Stable key of the value in the ticket's field values.",
             "maxLength": 100,
             "minLength": 1,
             "pattern": "^[a-zA-Z0-9_]+$",
@@ -498,6 +522,7 @@
             "type": "string"
           },
           "options": {
+            "description": "Choices of a select or multiselect field.",
             "items": {
               "type": "string"
             },
@@ -506,17 +531,20 @@
           },
           "placeholder": {
             "default": "",
+            "description": "Placeholder text of the input.",
             "title": "Placeholder",
             "type": "string"
           },
           "required": {
             "default": false,
+            "description": "Whether the submitter must fill it in.",
             "title": "Required",
             "type": "boolean"
           },
           "type": {
             "$ref": "#/components/schemas/FieldType",
-            "default": "text"
+            "default": "text",
+            "description": "Input type."
           }
         },
         "required": [
@@ -680,12 +708,14 @@
         "properties": {
           "button_label": {
             "default": "",
+            "description": "Login button text; blank uses a default.",
             "maxLength": 100,
             "title": "Button Label",
             "type": "string"
           },
           "client_id": {
             "default": "",
+            "description": "Client ID at the IdP.",
             "maxLength": 500,
             "title": "Client Id",
             "type": "string"
@@ -700,27 +730,32 @@
                 "type": "null"
               }
             ],
+            "description": "Client secret at the IdP. Blank or omitted keeps the saved one.",
             "title": "Client Secret"
           },
           "discovery_url": {
             "default": "",
+            "description": "The IdP's OpenID configuration URL (.../.well-known/openid-configuration).",
             "maxLength": 500,
             "title": "Discovery Url",
             "type": "string"
           },
           "enabled": {
             "default": false,
+            "description": "Show the OIDC login button and accept OIDC logins.",
             "title": "Enabled",
             "type": "boolean"
           },
           "redirect_uri": {
             "default": "",
+            "description": "Redirect URI registered at the IdP. Blank uses <first CORS origin>/api/auth/oidc/callback.",
             "maxLength": 500,
             "title": "Redirect Uri",
             "type": "string"
           },
           "scopes": {
             "default": "openid email profile",
+            "description": "Space-separated scopes to request; must include openid.",
             "maxLength": 500,
             "title": "Scopes",
             "type": "string"
@@ -846,6 +881,7 @@
                 "type": "null"
               }
             ],
+            "description": "ADO project for the work items; null uses the connection's default project.",
             "title": "Ado Project"
           },
           "area_path": {
@@ -857,6 +893,7 @@
                 "type": "null"
               }
             ],
+            "description": "ADO area path (Project\\Team) for the work items; null uses the project root.",
             "title": "Area Path"
           },
           "category_id": {
@@ -869,14 +906,17 @@
                 "type": "null"
               }
             ],
+            "description": "ID of the catalog category; null puts the portal under General.",
             "title": "Category Id"
           },
           "description": {
             "default": "",
+            "description": "Description shown in the catalog and on the form (Markdown).",
             "title": "Description",
             "type": "string"
           },
           "fields": {
+            "description": "Custom form fields. Title and Description are implicit and not listed here.",
             "items": {
               "$ref": "#/components/schemas/FieldDefinition"
             },
@@ -885,15 +925,18 @@
           },
           "icon": {
             "default": "",
+            "description": "Lucide icon name; empty inherits the category's icon.",
             "title": "Icon",
             "type": "string"
           },
           "is_active": {
             "default": true,
+            "description": "Whether end users can see and submit to the portal.",
             "title": "Is Active",
             "type": "boolean"
           },
           "name": {
+            "description": "Display name. The URL slug is derived from it.",
             "maxLength": 160,
             "minLength": 1,
             "title": "Name",
@@ -901,6 +944,7 @@
           },
           "work_item_type": {
             "default": "Issue",
+            "description": "ADO work item type created for each ticket.",
             "title": "Work Item Type",
             "type": "string"
           }
@@ -922,6 +966,7 @@
                 "type": "null"
               }
             ],
+            "description": "ADO project for the work items; null uses the connection's default project.",
             "title": "Ado Project"
           },
           "area_path": {
@@ -933,6 +978,7 @@
                 "type": "null"
               }
             ],
+            "description": "ADO area path (Project\\Team) for the work items; null uses the project root.",
             "title": "Area Path"
           },
           "category_id": {
@@ -945,6 +991,7 @@
                 "type": "null"
               }
             ],
+            "description": "ID of the catalog category; null puts the portal under General.",
             "title": "Category Id"
           },
           "category_name": {
@@ -965,6 +1012,7 @@
           },
           "description": {
             "default": "",
+            "description": "Description shown in the catalog and on the form (Markdown).",
             "title": "Description",
             "type": "string"
           },
@@ -974,6 +1022,7 @@
             "type": "string"
           },
           "fields": {
+            "description": "Custom form fields. Title and Description are implicit and not listed here.",
             "items": {
               "$ref": "#/components/schemas/FieldDefinition"
             },
@@ -982,6 +1031,7 @@
           },
           "icon": {
             "default": "",
+            "description": "Lucide icon name; empty inherits the category's icon.",
             "title": "Icon",
             "type": "string"
           },
@@ -992,10 +1042,12 @@
           },
           "is_active": {
             "default": true,
+            "description": "Whether end users can see and submit to the portal.",
             "title": "Is Active",
             "type": "boolean"
           },
           "name": {
+            "description": "Display name. The URL slug is derived from it.",
             "maxLength": 160,
             "minLength": 1,
             "title": "Name",
@@ -1007,6 +1059,7 @@
           },
           "work_item_type": {
             "default": "Issue",
+            "description": "ADO work item type created for each ticket.",
             "title": "Work Item Type",
             "type": "string"
           }
@@ -1031,6 +1084,7 @@
                 "type": "null"
               }
             ],
+            "description": "ADO project for the work items; null uses the connection's default project.",
             "title": "Ado Project"
           },
           "area_path": {
@@ -1042,6 +1096,7 @@
                 "type": "null"
               }
             ],
+            "description": "ADO area path (Project\\Team) for the work items; null uses the project root.",
             "title": "Area Path"
           },
           "category_id": {
@@ -1054,6 +1109,7 @@
                 "type": "null"
               }
             ],
+            "description": "ID of the catalog category; null puts the portal under General.",
             "title": "Category Id"
           },
           "description": {
@@ -1065,6 +1121,7 @@
                 "type": "null"
               }
             ],
+            "description": "Description shown in the catalog and on the form (Markdown).",
             "title": "Description"
           },
           "fields": {
@@ -1079,6 +1136,7 @@
                 "type": "null"
               }
             ],
+            "description": "Custom form fields. Title and Description are implicit and not listed here.",
             "title": "Fields"
           },
           "icon": {
@@ -1090,6 +1148,7 @@
                 "type": "null"
               }
             ],
+            "description": "Lucide icon name; empty inherits the category's icon.",
             "title": "Icon"
           },
           "is_active": {
@@ -1101,6 +1160,7 @@
                 "type": "null"
               }
             ],
+            "description": "Whether end users can see and submit to the portal.",
             "title": "Is Active"
           },
           "name": {
@@ -1114,6 +1174,7 @@
                 "type": "null"
               }
             ],
+            "description": "Display name. The URL slug is derived from it.",
             "title": "Name"
           },
           "work_item_type": {
@@ -1125,6 +1186,7 @@
                 "type": "null"
               }
             ],
+            "description": "ADO work item type created for each ticket.",
             "title": "Work Item Type"
           }
         },
@@ -1284,47 +1346,55 @@
         "properties": {
           "acs_url": {
             "default": "",
+            "description": "Assertion consumer service URL registered at the IdP. Blank uses <first CORS origin>/api/auth/saml/acs.",
             "maxLength": 500,
             "title": "Acs Url",
             "type": "string"
           },
           "button_label": {
             "default": "",
+            "description": "Login button text; blank uses a default.",
             "maxLength": 100,
             "title": "Button Label",
             "type": "string"
           },
           "email_attribute": {
             "default": "",
+            "description": "Assertion attribute holding the email; blank tries common ones, then NameID.",
             "maxLength": 500,
             "title": "Email Attribute",
             "type": "string"
           },
           "enabled": {
             "default": false,
+            "description": "Show the SAML login button and accept SAML logins.",
             "title": "Enabled",
             "type": "boolean"
           },
           "metadata_url": {
             "default": "",
+            "description": "URL of the IdP's SAML metadata.",
             "maxLength": 500,
             "title": "Metadata Url",
             "type": "string"
           },
           "metadata_xml": {
             "default": "",
+            "description": "The IdP's SAML metadata XML, instead of metadata_url.",
             "maxLength": 200000,
             "title": "Metadata Xml",
             "type": "string"
           },
           "name_attribute": {
             "default": "",
+            "description": "Assertion attribute holding the display name.",
             "maxLength": 500,
             "title": "Name Attribute",
             "type": "string"
           },
           "sp_entity_id": {
             "default": "azuregos",
+            "description": "Azuregos' entity ID (the SP).",
             "maxLength": 500,
             "title": "Sp Entity Id",
             "type": "string"
@@ -1339,10 +1409,12 @@
                 "type": "null"
               }
             ],
+            "description": "PEM private key of sp_x509_cert. Blank or omitted keeps the saved one.",
             "title": "Sp Private Key"
           },
           "sp_x509_cert": {
             "default": "",
+            "description": "PEM certificate Azuregos signs requests with; clearing it drops the key.",
             "maxLength": 20000,
             "title": "Sp X509 Cert",
             "type": "string"
@@ -1763,15 +1835,18 @@
         "properties": {
           "display_name": {
             "default": "",
+            "description": "Name shown in the UI and on ADO comments.",
             "title": "Display Name",
             "type": "string"
           },
           "email": {
+            "description": "Sign-in email address; it can't be changed later.",
             "format": "email",
             "title": "Email",
             "type": "string"
           },
           "password": {
+            "description": "Password for local sign-in.",
             "maxLength": 128,
             "minLength": 8,
             "title": "Password",
@@ -1779,6 +1854,7 @@
           },
           "portal_ids": {
             "default": [],
+            "description": "IDs of the portals a portal_admin manages; ignored for other roles.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -1788,7 +1864,8 @@
           },
           "role": {
             "$ref": "#/components/schemas/UserRole",
-            "default": "end_user"
+            "default": "end_user",
+            "description": "super_admin > admin > portal_admin > end_user. Only a super admin can grant super_admin."
           }
         },
         "required": [
@@ -1807,10 +1884,12 @@
           },
           "display_name": {
             "default": "",
+            "description": "Name shown in the UI and on ADO comments.",
             "title": "Display Name",
             "type": "string"
           },
           "email": {
+            "description": "Sign-in email address; it can't be changed later.",
             "format": "email",
             "title": "Email",
             "type": "string"
@@ -1838,7 +1917,8 @@
           },
           "role": {
             "$ref": "#/components/schemas/UserRole",
-            "default": "end_user"
+            "default": "end_user",
+            "description": "super_admin > admin > portal_admin > end_user. Only a super admin can grant super_admin."
           }
         },
         "required": [
@@ -1872,6 +1952,7 @@
                 "type": "null"
               }
             ],
+            "description": "Name shown in the UI and on ADO comments.",
             "title": "Display Name"
           },
           "is_active": {
@@ -1883,6 +1964,7 @@
                 "type": "null"
               }
             ],
+            "description": "Whether the account can sign in.",
             "title": "Is Active"
           },
           "password": {
@@ -1896,6 +1978,7 @@
                 "type": "null"
               }
             ],
+            "description": "Password for local sign-in.",
             "title": "Password"
           },
           "portal_ids": {
@@ -1911,6 +1994,7 @@
                 "type": "null"
               }
             ],
+            "description": "IDs of the portals a portal_admin manages; ignored for other roles.",
             "title": "Portal Ids"
           },
           "role": {
@@ -1921,7 +2005,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "super_admin > admin > portal_admin > end_user. Only a super admin can grant super_admin."
           }
         },
         "title": "UserUpdate",

@@ -1,0 +1,10 @@
+---
+# ansible-playbook zollo.azuregos.configure -e @azuregos-config.yml
+# Applies the variables of the zollo.azuregos.configure role (see its
+# meta/argument_specs.yml). Runs on the controller: the modules call the API.
+- name: Configure Azuregos
+  hosts: "{{ azuregos_hosts | default('localhost') }}"
+  connection: local
+  gather_facts: false
+  roles:
+    - role: zollo.azuregos.configure

@@ -1,0 +1,10 @@
+---
+galaxy_info:
+  author: Azuregos contributors
+  description: Write an Azuregos configuration to a vars file for the configure role
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.15"
+  platforms:
+    - name: GenericLinux
+      versions: [all]
+dependencies: []

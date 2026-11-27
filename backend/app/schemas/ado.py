@@ -10,9 +10,21 @@ from pydantic import BaseModel, Field, field_validator
 class AdoConnectionWrite(BaseModel):
     """Save (or test) a connection. A blank ``pat`` keeps the saved one."""
 
-    org_url: str = Field(min_length=1, max_length=500)
-    pat: str | None = Field(default=None, max_length=500)
-    default_project: str = Field(default="", max_length=200)
+    org_url: str = Field(
+        min_length=1,
+        max_length=500,
+        description="Organization URL, e.g. https://dev.azure.com/your-org.",
+    )
+    pat: str | None = Field(
+        default=None,
+        max_length=500,
+        description="Personal access token. Blank keeps the saved one.",
+    )
+    default_project: str = Field(
+        default="",
+        max_length=200,
+        description="Project used by portals that don't name one.",
+    )
 
     @field_validator("org_url")
     @classmethod

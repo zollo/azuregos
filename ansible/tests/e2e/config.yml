@@ -1,0 +1,37 @@
+---
+# Input for the configure role in ../run-e2e.sh.
+azuregos_oidc_settings:
+  enabled: false
+  discovery_url: https://idp.example.com/.well-known/openid-configuration
+  client_id: e2e-client
+  client_secret: e2e-secret
+azuregos_saml_settings:
+  enabled: false
+  metadata_url: https://idp.example.com/saml/metadata
+azuregos_categories:
+  - name: Hardware
+    icon: laptop
+    sort_order: 10
+  - name: Access
+    description: Accounts and permissions.
+azuregos_portals:
+  - name: Request a laptop
+    category: Hardware
+    description: Ask for a **new** laptop.
+    fields:
+      - name: model
+        label: Model
+        type: select
+        options: [MacBook Pro, ThinkPad X1]
+        required: true
+  - name: Request access
+    category: Access
+    area_path: ""
+azuregos_users:
+  - email: lead@example.com
+    display_name: Help-desk lead
+    password: lead-password-1
+    role: portal_admin
+    portals: [Request a laptop, Request access]
+  - email: viewer@example.com
+    password: viewer-password-1

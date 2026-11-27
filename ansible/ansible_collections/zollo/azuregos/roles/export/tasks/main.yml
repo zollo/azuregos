@@ -1,0 +1,60 @@
+---
+- name: Sign in once
+  ansible.builtin.uri:
+    url: "{{ azuregos_url | regex_replace('/+$', '') }}/api/auth/login"
+    method: POST
+    body_format: json
+    body:
+      email: "{{ azuregos_username }}"
+      password: "{{ azuregos_password }}"
+    validate_certs: "{{ azuregos_validate_certs }}"
+  register: azuregos__login
+  no_log: true
+  check_mode: false
+  when: azuregos_token is not defined or not azuregos_token
+
+- name: Read and write the configuration
+  module_defaults:
+    group/zollo.azuregos.all:
+      api_url: "{{ azuregos_url }}"
+      api_token: "{{ azuregos_token if (azuregos_token is defined and azuregos_token)
+                 else azuregos__login.json.access_token }}"
+      validate_certs: "{{ azuregos_validate_certs }}"
+  block:
+    - name: Read the ADO connection
+      zollo.azuregos.ado_connection_info:
+      register: azuregos__ado_connection_info
+    - name: Read the OIDC settings
+      zollo.azuregos.oidc_settings_info:
+      register: azuregos__oidc_settings_info
+    - name: Read the SAML settings
+      zollo.azuregos.saml_settings_info:
+      register: azuregos__saml_settings_info
+    - name: Read the categories
+      zollo.azuregos.category_info:
+      register: azuregos__category_info
+    - name: Read the portals
+      zollo.azuregos.portal_info:
+      register: azuregos__portal_info
+    - name: Read the users
+      zollo.azuregos.user_info:
+      register: azuregos__user_info
+
+    - name: Write {{ azuregos_export_path }}
+      ansible.builtin.copy:
+        dest: "{{ azuregos_export_path }}"
+        mode: "0600"
+        content: |
+          # Exported from {{ azuregos_url }} by zollo.azuregos.export.
+          # Feed it to the zollo.azuregos.configure role. Secrets aren't exported:
+          # add the ADO PAT, the OIDC client secret, the SAML SP key and user
+          # passwords (e.g. from a vault).
+          {{ {
+               'ado_connection_info': azuregos__ado_connection_info,
+               'oidc_settings_info': azuregos__oidc_settings_info,
+               'saml_settings_info': azuregos__saml_settings_info,
+               'category_info': azuregos__category_info,
+               'portal_info': azuregos__portal_info,
+               'user_info': azuregos__user_info,
+             } | zollo.azuregos.export_config(azuregos__export) | to_nice_yaml(indent=2, sort_keys=false) }}
+      delegate_to: localhost

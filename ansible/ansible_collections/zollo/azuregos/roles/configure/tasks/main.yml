@@ -1,0 +1,41 @@
+---
+- name: Wait for the Azuregos API to be ready
+  ansible.builtin.uri:
+    url: "{{ azuregos_url | regex_replace('/+$', '') }}/api/health/ready"
+    validate_certs: "{{ azuregos_validate_certs }}"
+    status_code: 200
+  register: azuregos__ready
+  until: azuregos__ready.status == 200 and azuregos__ready.json.database | default(false)
+  retries: "{{ (azuregos_wait_timeout | int / 5) | round(0, 'ceil') | int }}"
+  delay: 5
+  check_mode: false
+  when: azuregos_wait_timeout | int > 0
+
+- name: Sign in once
+  ansible.builtin.uri:
+    url: "{{ azuregos_url | regex_replace('/+$', '') }}/api/auth/login"
+    method: POST
+    body_format: json
+    body:
+      email: "{{ azuregos_username }}"
+      password: "{{ azuregos_password }}"
+    validate_certs: "{{ azuregos_validate_certs }}"
+  register: azuregos__login
+  no_log: true
+  check_mode: false
+  when: azuregos_token is not defined or not azuregos_token
+
+- name: Apply the configuration
+  module_defaults:
+    group/zollo.azuregos.all:
+      api_url: "{{ azuregos_url }}"
+      api_token: "{{ azuregos_token if (azuregos_token is defined and azuregos_token)
+                 else azuregos__login.json.access_token }}"
+      validate_certs: "{{ azuregos_validate_certs }}"
+  block:
+    - name: Start with no looked-up IDs
+      ansible.builtin.set_fact:
+        azuregos__ids: {category: {}, portal: {}}
+
+    - name: Apply each resource type
+      ansible.builtin.include_tasks: resources.yml
