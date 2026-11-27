@@ -1,0 +1,340 @@
+# How the Azuregos API's operations group into Ansible modules.
+#
+# generate.py reads this file and ansible/openapi.json and writes every module
+# in ansible_collections/zollo/azuregos/plugins/modules/. The OpenAPI spec is
+# the source of each module's options: names, types, choices, required
+# suboptions, length/pattern/format constraints, defaults and descriptions all
+# come from the request schemas, and RETURN comes from the response schemas.
+# This file only says which operations make up a resource and how to find an
+# existing object. To change an option's description, change the Pydantic
+# schema in backend/app/schemas/, not this file.
+#
+# Every operation under /api must be used here or listed under `ignore` with a
+# reason; generate.py --check fails otherwise, so a new endpoint can't land
+# without a decision about the collection.
+#
+# kinds:
+#   collection  list + create + update + delete, matched on `identity` (or `id`)
+#   singleton   one object: read + write (PUT) + delete; `read_key` picks the
+#               object out of the read response
+#   info        one GET; `filters` match fields of the returned list client-side,
+#               query parameters become options automatically
+#   action      one POST that changes nothing (e.g. a connection test)
+
+modules:
+  category:
+    kind: collection
+    noun: category
+    short_description: Manage service-catalog categories
+    description: >-
+      Create, update or delete a category of the portal catalog. A category is
+      found by its name, or by id (use id to rename one).
+    requires: an admin or super_admin account.
+    identity: name
+    id_param: category_id
+    list: GET /api/categories
+    create: POST /api/categories
+    update: PATCH /api/categories/{category_id}
+    delete: DELETE /api/categories/{category_id}
+    return_key: category
+    examples: |
+      - name: Hardware category
+        zollo.azuregos.category:
+          api_url: https://azuregos.example.com
+          api_token: "{{ azuregos_token }}"
+          name: Hardware
+          description: Laptops, monitors and peripherals.
+          icon: laptop
+          sort_order: 10
+
+      - name: Rename it, found by id
+        zollo.azuregos.category:
+          id: "{{ hw.category.id }}"
+          name: Devices
+
+      - name: Remove a category (its portals move to General)
+        zollo.azuregos.category:
+          name: Legacy
+          state: absent
+
+  portal:
+    kind: collection
+    noun: portal
+    short_description: Manage request portals (forms that create ADO work items)
+    description: >-
+      Create, update or delete a portal: a form whose submissions become Azure
+      DevOps work items. A portal is found by its name, or by id (use id to
+      rename one). On save the API checks work_item_type and area_path against
+      Azure DevOps when a connection is configured.
+    requires: an admin or super_admin account to create or delete; a portal_admin can update the portals assigned to them.
+    identity: name
+    id_param: portal_id
+    nullable: [category_id, ado_project, area_path]
+    list: GET /api/portals
+    create: POST /api/portals
+    update: PATCH /api/portals/{portal_id}
+    delete: DELETE /api/portals/{portal_id}
+    return_key: portal
+    examples: |
+      - name: Laptop request portal
+        zollo.azuregos.portal:
+          name: Request a laptop
+          description: "Ask for a **new** or replacement laptop."
+          icon: laptop
+          category_id: "{{ hw.category.id }}"
+          ado_project: IT
+          work_item_type: Issue
+          area_path: IT\Hardware
+          fields:
+            - name: model
+              label: Model
+              type: select
+              options: [MacBook Pro, ThinkPad X1]
+              required: true
+            - name: priority
+              label: Priority
+              type: select
+              options: ["1", "2", "3", "4"]
+              ado_field_ref: Microsoft.VSTS.Common.Priority
+
+      - name: Move a portal back to General (clear its category)
+        zollo.azuregos.portal:
+          name: Request a laptop
+          category_id: ""
+
+  user:
+    kind: collection
+    noun: user
+    short_description: Manage Azuregos user accounts and roles
+    description: >-
+      Create, update or delete a local account. A user is found by email, or
+      by id. The API never returns passwords, so a password is only sent when
+      the account is created, unless update_password is always.
+    requires: an admin or super_admin account; only a super_admin can grant super_admin or change a super admin's account.
+    identity: email
+    id_param: user_id
+    write_only: [password]
+    unordered: [portal_ids]
+    list: GET /api/users
+    create: POST /api/users
+    update: PATCH /api/users/{user_id}
+    delete: DELETE /api/users/{user_id}
+    return_key: user
+    examples: |
+      - name: Help-desk lead who manages two portals
+        zollo.azuregos.user:
+          email: lead@example.com
+          display_name: Help-desk lead
+          password: "{{ vault_lead_password }}"
+          role: portal_admin
+          portal_ids:
+            - "{{ laptop.portal.id }}"
+            - "{{ access.portal.id }}"
+
+      - name: Disable an account
+        zollo.azuregos.user:
+          email: leaver@example.com
+          is_active: false
+
+  ado_connection:
+    kind: singleton
+    noun: Azure DevOps connection
+    short_description: Manage the Azure DevOps connection saved in Azuregos
+    description: >-
+      Save the Azure DevOps organization, PAT and default project that
+      Azuregos uses. A saved connection wins over the server's ADO_* env vars;
+      state=absent deletes it, which reverts to the env vars. The API checks
+      the values against Azure DevOps before saving. The PAT is never returned,
+      so it is only sent when no connection is saved yet, unless update_pat is
+      always.
+    requires: a super_admin account.
+    read: GET /api/ado/connection
+    read_key: stored
+    write: PUT /api/ado/connection
+    delete: DELETE /api/ado/connection
+    write_only: [pat]
+    normalize: {org_url: rstrip_slash, default_project: strip}
+    return_key: ado_connection
+    examples: |
+      - name: Connect to Azure DevOps
+        zollo.azuregos.ado_connection:
+          org_url: https://dev.azure.com/contoso
+          pat: "{{ vault_ado_pat }}"
+          default_project: IT
+
+      - name: Rotate the PAT
+        zollo.azuregos.ado_connection:
+          org_url: https://dev.azure.com/contoso
+          pat: "{{ vault_new_ado_pat }}"
+          update_pat: always
+
+      - name: Go back to the ADO_* environment variables
+        zollo.azuregos.ado_connection:
+          state: absent
+
+  ado_connection_test:
+    kind: action
+    short_description: Test Azure DevOps connection values without saving them
+    description: >-
+      Ask Azuregos to check an organization URL and PAT against Azure DevOps.
+      Nothing is saved and the task never reports a change. A blank pat tests
+      with the saved one.
+    requires: a super_admin account.
+    call: POST /api/ado/connection/test
+    write_only: [pat]
+    return_key: result
+    examples: |
+      - name: Check a new PAT before saving it
+        zollo.azuregos.ado_connection_test:
+          org_url: https://dev.azure.com/contoso
+          pat: "{{ vault_new_ado_pat }}"
+        register: test
+        failed_when: not test.result.ok
+
+  category_info:
+    kind: info
+    short_description: List service-catalog categories
+    description: List categories with their portal counts, optionally only the one with a given name.
+    requires: an admin or super_admin account.
+    read: GET /api/categories
+    filters: [name, slug]
+    return_key: categories
+    examples: |
+      - zollo.azuregos.category_info:
+        register: cats
+
+  portal_info:
+    kind: info
+    short_description: List portals
+    description: List portals (all of them for an admin, a portal_admin's own otherwise), optionally filtered.
+    requires: an admin, super_admin or portal_admin account.
+    read: GET /api/portals
+    filters: [name, slug, category_id]
+    return_key: portals
+    examples: |
+      - zollo.azuregos.portal_info:
+          name: Request a laptop
+        register: found
+
+  user_info:
+    kind: info
+    short_description: List user accounts
+    description: List user accounts, optionally filtered.
+    requires: an admin or super_admin account.
+    read: GET /api/users
+    filters: [email, role]
+    return_key: users
+    examples: |
+      - zollo.azuregos.user_info:
+          role: super_admin
+        register: supers
+
+  ado_connection_info:
+    kind: info
+    short_description: Show which Azure DevOps connection Azuregos uses
+    description: Show the saved and environment connections (never the PAT) and which one is in effect.
+    requires: a super_admin account.
+    read: GET /api/ado/connection
+    return_key: ado_connection
+    examples: |
+      - zollo.azuregos.ado_connection_info:
+        register: ado
+      - ansible.builtin.debug:
+          msg: "In effect: {{ ado.ado_connection.source }}"
+
+  ado_project_info:
+    kind: info
+    short_description: List the Azure DevOps projects Azuregos can see
+    description: List the projects in the connected organization.
+    requires: any signed-in account.
+    read: GET /api/ado/projects
+    return_key: ado_projects
+    examples: |
+      - zollo.azuregos.ado_project_info:
+        register: projects
+
+  ado_work_item_type_info:
+    kind: info
+    short_description: List Azure DevOps work item types of a project
+    description: List the work item types a portal of the project can create.
+    requires: any signed-in account.
+    read: GET /api/ado/work-item-types
+    return_key: ado_work_item_types
+    examples: |
+      - zollo.azuregos.ado_work_item_type_info:
+          project: IT
+        register: types
+
+  ado_area_path_info:
+    kind: info
+    short_description: List Azure DevOps area paths of a project
+    description: List the area paths a portal of the project can use.
+    requires: any signed-in account.
+    read: GET /api/ado/area-paths
+    return_key: ado_area_paths
+    examples: |
+      - zollo.azuregos.ado_area_path_info:
+          project: IT
+        register: areas
+
+  build_info:
+    kind: info
+    short_description: Show the Azuregos server's version and build
+    description: Return the server's version, commit, build time and whether ADO is configured.
+    requires: any signed-in account.
+    read: GET /api/build-info
+    return_key: build
+    examples: |
+      - zollo.azuregos.build_info:
+        register: server
+      - ansible.builtin.assert:
+          that: server.build.version is version('1.0.0', '>=')
+
+# Operations the collection deliberately doesn't wrap. Configuration only:
+# end-user and sign-in flows stay in the UI.
+ignore:
+  "GET /": API root banner
+  "GET /api/health": unauthenticated liveness probe (the configure role polls it with ansible.builtin.uri)
+  "GET /api/health/ready": unauthenticated readiness probe
+  "POST /api/auth/login": used by every module to turn username/password into a token
+  "POST /api/auth/register": end-user self sign-up
+  "GET /api/auth/me": session lookup for the UI
+  "GET /api/auth/providers": sign-in buttons for the UI
+  "GET /api/auth/oidc/login": browser redirect flow
+  "GET /api/auth/oidc/callback": browser redirect flow
+  "GET /api/auth/saml/login": browser redirect flow
+  "POST /api/auth/saml/acs": browser redirect flow
+  "GET /api/portals/catalog": end-user catalog view (portal_info covers admin listing)
+  "GET /api/portals/{slug}": end-user form view (portal_info covers admin listing)
+  "POST /api/tickets": tickets are user data, not configuration
+  "GET /api/tickets": tickets are user data, not configuration
+  "GET /api/tickets/{ticket_id}": tickets are user data, not configuration
+  "POST /api/tickets/{ticket_id}/retry": tickets are user data, not configuration
+  "GET /api/tickets/{ticket_id}/comments": tickets are user data, not configuration
+  "POST /api/tickets/{ticket_id}/comments": tickets are user data, not configuration
+
+# The zollo.azuregos.configure role applies a whole configuration from
+# variables, in this order. Its per-resource task files, its argument spec and
+# the export role's field lists are generated from the modules above, so a new
+# API field shows up in the role without a hand edit. `references` let a
+# variable name another object instead of quoting its ID: the role looks the
+# ID up (a list reference takes a list of names).
+role:
+  resources:
+    - module: ado_connection
+      var: azuregos_ado_connection
+    - module: category
+      var: azuregos_categories
+    - module: portal
+      var: azuregos_portals
+      references:
+        category:
+          option: category_id
+          from: category
+    - module: user
+      var: azuregos_users
+      references:
+        portals:
+          option: portal_ids
+          from: portal
+          list: true

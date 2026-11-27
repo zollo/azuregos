@@ -1,0 +1,184 @@
+---
+# End-to-end test of the modules against a running Azuregos API with an
+# empty database. Run by ../run-e2e.sh (CI job "Ansible collection").
+- name: Exercise every zollo.azuregos module
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  module_defaults:
+    group/zollo.azuregos.all:
+      api_url: "{{ lookup('env', 'AZUREGOS_URL') }}"
+      api_username: "{{ lookup('env', 'AZUREGOS_USERNAME') }}"
+      api_password: "{{ lookup('env', 'AZUREGOS_PASSWORD') }}"
+  tasks:
+    # ── category ───────────────────────────────────────────────────────
+    - name: Create a category (check mode)
+      zollo.azuregos.category: {name: E2E Hardware, icon: laptop, sort_order: 5}
+      check_mode: true
+      register: r
+    - ansible.builtin.assert: {that: [r.changed]}
+    - name: Nothing was created in check mode
+      zollo.azuregos.category_info: {name: E2E Hardware}
+      register: r
+    - ansible.builtin.assert: {that: ["r.categories == []"]}
+
+    - name: Create a category
+      zollo.azuregos.category: {name: E2E Hardware, icon: laptop, sort_order: 5}
+      register: hw
+    - ansible.builtin.assert:
+        that: [hw.changed, hw.category.slug == 'e2e-hardware', hw.category.sort_order == 5]
+    - name: Same again is a no-op
+      zollo.azuregos.category: {name: E2E Hardware, icon: laptop, sort_order: 5}
+      register: r
+    - ansible.builtin.assert: {that: [not r.changed]}
+    - name: Change one field, with diff
+      zollo.azuregos.category: {name: E2E Hardware, description: Laptops}
+      diff: true
+      register: r
+    - ansible.builtin.assert:
+        that: [r.changed, "r.diff.after == {'description': 'Laptops'}", r.category.icon == 'laptop']
+    - name: Rename by id
+      zollo.azuregos.category: {id: "{{ hw.category.id }}", name: E2E Devices}
+      register: r
+    - ansible.builtin.assert: {that: [r.changed, r.category.slug == 'e2e-devices']}
+
+    - name: A name longer than the spec allows fails before any request
+      zollo.azuregos.category: {name: "{{ 'x' * 121 }}"}
+      register: r
+      ignore_errors: true
+    - ansible.builtin.assert:
+        that: [r.failed, "'at most 120 characters' in r.msg"]
+
+    # ── portal ─────────────────────────────────────────────────────────
+    - name: Create a portal with fields
+      zollo.azuregos.portal:
+        name: E2E Laptop
+        category_id: "{{ hw.category.id }}"
+        work_item_type: Issue
+        fields:
+          - {name: model, label: Model, type: select, options: [A, B], required: true}
+          - {name: notes, label: Notes, type: textarea}
+      register: laptop
+    - ansible.builtin.assert:
+        that:
+          - laptop.changed
+          - laptop.portal.category_name == 'E2E Devices'
+          - laptop.portal.fields | length == 2
+          - laptop.portal.fields[1].type == 'textarea'
+    - name: Same portal again is a no-op
+      zollo.azuregos.portal:
+        name: E2E Laptop
+        category_id: "{{ hw.category.id | upper }}"
+        work_item_type: Issue
+        fields:
+          - {name: model, label: Model, type: select, options: [A, B], required: true}
+          - {name: notes, label: Notes, type: textarea}
+      register: r
+    - ansible.builtin.assert: {that: [not r.changed]}
+    - name: A bad field name fails on the spec's pattern
+      zollo.azuregos.portal:
+        name: E2E Laptop
+        fields: [{name: "bad name", label: Bad}]
+      register: r
+      ignore_errors: true
+    - ansible.builtin.assert: {that: [r.failed, "'must match' in r.msg"]}
+    - name: Clear the category with an empty string
+      zollo.azuregos.portal: {name: E2E Laptop, category_id: ""}
+      register: r
+    - ansible.builtin.assert: {that: [r.changed, r.portal.category_id is none]}
+    - name: Clearing it again is a no-op
+      zollo.azuregos.portal: {name: E2E Laptop, category_id: ""}
+      register: r
+    - ansible.builtin.assert: {that: [not r.changed]}
+    - name: portal_info filters
+      zollo.azuregos.portal_info: {slug: e2e-laptop}
+      register: r
+    - ansible.builtin.assert: {that: [r.portals | length == 1, "r.portals[0].name == 'E2E Laptop'"]}
+
+    # ── user ───────────────────────────────────────────────────────────
+    - name: Create a portal admin
+      zollo.azuregos.user:
+        email: e2e-lead@example.com
+        display_name: Lead
+        password: e2e-password-1
+        role: portal_admin
+        portal_ids: ["{{ laptop.portal.id }}"]
+      register: lead
+    - ansible.builtin.assert:
+        that: [lead.changed, "lead.user.portal_ids == [laptop.portal.id]", "'password' not in lead.user"]
+    - name: Same user again (password not re-sent) is a no-op
+      zollo.azuregos.user:
+        email: e2e-lead@example.com
+        display_name: Lead
+        password: e2e-password-1
+        role: portal_admin
+        portal_ids: ["{{ laptop.portal.id }}"]
+      register: r
+    - ansible.builtin.assert: {that: [not r.changed]}
+    - name: update_password=always sends it
+      zollo.azuregos.user:
+        email: e2e-lead@example.com
+        password: e2e-password-2
+        update_password: always
+      register: r
+    - ansible.builtin.assert: {that: [r.changed]}
+    - name: The new password works
+      zollo.azuregos.build_info:
+        api_username: e2e-lead@example.com
+        api_password: e2e-password-2
+      register: r
+    - ansible.builtin.assert: {that: [r.build.version is defined, not r.changed]}
+    - name: Create a disabled user (is_active is update-only, sent after create)
+      zollo.azuregos.user:
+        email: e2e-off@example.com
+        password: e2e-password-3
+        is_active: false
+      register: r
+    - ansible.builtin.assert: {that: [r.changed, not r.user.is_active]}
+    - name: user_info filters
+      zollo.azuregos.user_info: {role: portal_admin}
+      register: r
+    - ansible.builtin.assert: {that: ["r.users | map(attribute='email') | list == ['e2e-lead@example.com']"]}
+    - name: The API's own errors come through
+      zollo.azuregos.user: {email: e2e-dup@example.com}
+      register: r
+      ignore_errors: true
+    - ansible.builtin.assert: {that: [r.failed, "'password is required' in r.msg"]}
+
+    # ── ADO (no Azure DevOps here: read-only and check-mode paths) ─────
+    - name: ado_connection_info
+      zollo.azuregos.ado_connection_info:
+      register: r
+    - ansible.builtin.assert: {that: [r.ado_connection.stored is none]}
+    - name: Saving a connection reports a change in check mode
+      zollo.azuregos.ado_connection: {org_url: https://dev.azure.com/e2e, pat: not-a-pat}
+      check_mode: true
+      register: r
+    - ansible.builtin.assert: {that: [r.changed]}
+    - name: Deleting a connection that isn't saved is a no-op
+      zollo.azuregos.ado_connection: {state: absent}
+      register: r
+    - ansible.builtin.assert: {that: [not r.changed]}
+    - name: ado_project_info when ADO isn't configured
+      zollo.azuregos.ado_project_info:
+      register: r
+    - ansible.builtin.assert: {that: [not r.ado_projects.configured]}
+    - name: ado_area_path_info takes the spec's query parameter
+      zollo.azuregos.ado_area_path_info: {project: IT}
+      register: r
+    - ansible.builtin.assert: {that: ["r.ado_area_paths.area_paths == []"]}
+
+    # ── clean up ───────────────────────────────────────────────────────
+    - name: Delete the users
+      zollo.azuregos.user: {email: "{{ item }}", state: absent}
+      loop: [e2e-lead@example.com, e2e-off@example.com]
+    - name: Delete the portal
+      zollo.azuregos.portal: {name: E2E Laptop, state: absent}
+      register: r
+    - ansible.builtin.assert: {that: [r.changed, "r.portal == {}"]}
+    - name: Delete the category
+      zollo.azuregos.category: {name: E2E Devices, state: absent}
+    - name: Deleting again is a no-op
+      zollo.azuregos.category: {name: E2E Devices, state: absent}
+      register: r
+    - ansible.builtin.assert: {that: [not r.changed]}

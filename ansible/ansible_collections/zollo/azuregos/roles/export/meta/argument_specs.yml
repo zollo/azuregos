@@ -1,0 +1,33 @@
+---
+argument_specs:
+  main:
+    short_description: Write an Azuregos instance's configuration to a vars file
+    description:
+      - Reads the ADO connection, categories, portals and users and writes them as
+        the variables of the zollo.azuregos.configure role, with category and
+        portal names instead of IDs.
+      - Secrets (passwords, the ADO PAT) are never returned by the API, so they are
+        not in the file. Federated (OIDC/SAML) accounts are left out because they
+        can't be created through the API.
+    options:
+      azuregos_url:
+        type: str
+        required: true
+        description: Base URL of the Azuregos instance.
+      azuregos_token:
+        type: str
+        description: API bearer token. Without it the role signs in with azuregos_username and azuregos_password.
+      azuregos_username:
+        type: str
+        description: Email of a super_admin account (the ADO connection needs one).
+      azuregos_password:
+        type: str
+        description: Password of azuregos_username.
+      azuregos_validate_certs:
+        type: bool
+        default: true
+        description: Verify the server's TLS certificate.
+      azuregos_export_path:
+        type: path
+        default: "{{ playbook_dir }}/azuregos-config.yml"
+        description: File to write on the controller.
