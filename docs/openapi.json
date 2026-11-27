@@ -2061,19 +2061,19 @@
   "info": {
     "description": "A service-desk front end for Azure DevOps.",
     "title": "Azuregos",
-    "version": "snapshot"
+    "version": "0.0.0-snapshot"
   },
   "openapi": "3.1.0",
   "paths": {
     "/": {
       "get": {
-        "operationId": "root__get",
+        "operationId": "root",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Root  Get",
+                  "title": "Response Root",
                   "type": "object"
                 }
               }
@@ -2081,13 +2081,16 @@
             "description": "Successful Response"
           }
         },
-        "summary": "Root"
+        "summary": "Root",
+        "x-azuregos-mcp": {
+          "exclude": "Service banner; use health and build_info."
+        }
       }
     },
     "/api/ado/area-paths": {
       "get": {
         "description": "Valid area paths for ``project`` (or the server default if omitted).",
-        "operationId": "list_area_paths_api_ado_area_paths_get",
+        "operationId": "list_ado_area_paths",
         "parameters": [
           {
             "in": "query",
@@ -2111,7 +2114,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Area Paths Api Ado Area Paths Get",
+                  "title": "Response List Ado Area Paths",
                   "type": "object"
                 }
               }
@@ -2134,7 +2137,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "List Area Paths",
+        "summary": "List Ado Area Paths",
         "tags": [
           "ado"
         ]
@@ -2143,7 +2146,7 @@
     "/api/ado/connection": {
       "delete": {
         "description": "Remove the saved connection, reverting to the ADO_* env vars.",
-        "operationId": "delete_connection_api_ado_connection_delete",
+        "operationId": "delete_ado_connection",
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -2154,14 +2157,14 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Delete Connection",
+        "summary": "Delete Ado Connection",
         "tags": [
           "ado"
         ]
       },
       "get": {
         "description": "Which connection is in effect, plus the saved and env values (no PATs).",
-        "operationId": "get_connection_api_ado_connection_get",
+        "operationId": "get_ado_connection",
         "responses": {
           "200": {
             "content": {
@@ -2179,14 +2182,14 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Get Connection",
+        "summary": "Get Ado Connection",
         "tags": [
           "ado"
         ]
       },
       "put": {
         "description": "Save the UI connection; it then takes precedence over the ADO_* env vars.\n\nThe values are verified against ADO first. A definite rejection (bad PAT,\nunknown org/project) blocks the save; a transient error doesn't, matching\nhow portal saves treat an unreachable ADO.",
-        "operationId": "save_connection_api_ado_connection_put",
+        "operationId": "save_ado_connection",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2224,7 +2227,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Save Connection",
+        "summary": "Save Ado Connection",
         "tags": [
           "ado"
         ]
@@ -2233,7 +2236,7 @@
     "/api/ado/connection/test": {
       "post": {
         "description": "Check connection values without saving. A blank PAT uses the saved one.",
-        "operationId": "test_connection_api_ado_connection_test_post",
+        "operationId": "test_ado_connection",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2271,7 +2274,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Test Connection",
+        "summary": "Test Ado Connection",
         "tags": [
           "ado"
         ]
@@ -2280,13 +2283,13 @@
     "/api/ado/projects": {
       "get": {
         "description": "Projects in the configured org. Never errors hard so the editor can fall\nback to a free-text field: returns ``configured`` and an optional ``error``.",
-        "operationId": "list_projects_api_ado_projects_get",
+        "operationId": "list_ado_projects",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Projects Api Ado Projects Get",
+                  "title": "Response List Ado Projects",
                   "type": "object"
                 }
               }
@@ -2299,7 +2302,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "List Projects",
+        "summary": "List Ado Projects",
         "tags": [
           "ado"
         ]
@@ -2308,7 +2311,7 @@
     "/api/ado/work-item-types": {
       "get": {
         "description": "Work-item types for ``project`` (or the server default if omitted).",
-        "operationId": "list_work_item_types_api_ado_work_item_types_get",
+        "operationId": "list_ado_work_item_types",
         "parameters": [
           {
             "in": "query",
@@ -2332,7 +2335,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Work Item Types Api Ado Work Item Types Get",
+                  "title": "Response List Ado Work Item Types",
                   "type": "object"
                 }
               }
@@ -2355,7 +2358,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "List Work Item Types",
+        "summary": "List Ado Work Item Types",
         "tags": [
           "ado"
         ]
@@ -2363,7 +2366,7 @@
     },
     "/api/auth/login": {
       "post": {
-        "operationId": "login_api_auth_login_post",
+        "operationId": "login",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2399,12 +2402,15 @@
         "summary": "Login",
         "tags": [
           "auth"
-        ]
+        ],
+        "x-azuregos-mcp": {
+          "exclude": "Returns a bearer token; the MCP server authenticates itself and must not hand tokens to the model."
+        }
       }
     },
     "/api/auth/me": {
       "get": {
-        "operationId": "me_api_auth_me_get",
+        "operationId": "me",
         "responses": {
           "200": {
             "content": {
@@ -2430,7 +2436,7 @@
     },
     "/api/auth/oidc/callback": {
       "get": {
-        "operationId": "oidc_callback_api_auth_oidc_callback_get",
+        "operationId": "oidc_callback",
         "parameters": [
           {
             "in": "query",
@@ -2474,12 +2480,15 @@
         "summary": "Oidc Callback",
         "tags": [
           "auth"
-        ]
+        ],
+        "x-azuregos-mcp": {
+          "exclude": "Browser redirect step of federated login."
+        }
       }
     },
     "/api/auth/oidc/login": {
       "get": {
-        "operationId": "oidc_login_api_auth_oidc_login_get",
+        "operationId": "oidc_login",
         "responses": {
           "200": {
             "content": {
@@ -2493,13 +2502,16 @@
         "summary": "Oidc Login",
         "tags": [
           "auth"
-        ]
+        ],
+        "x-azuregos-mcp": {
+          "exclude": "Browser redirect step of federated login."
+        }
       }
     },
     "/api/auth/providers": {
       "get": {
         "description": "Tell the frontend which login buttons to render, and their labels.",
-        "operationId": "providers_api_auth_providers_get",
+        "operationId": "providers",
         "responses": {
           "200": {
             "content": {
@@ -2521,7 +2533,7 @@
     "/api/auth/register": {
       "post": {
         "description": "Self-service end-user registration (creates a local end_user account).",
-        "operationId": "register_api_auth_register_post",
+        "operationId": "register",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2557,12 +2569,15 @@
         "summary": "Register",
         "tags": [
           "auth"
-        ]
+        ],
+        "x-azuregos-mcp": {
+          "exclude": "Returns a bearer token; the MCP server authenticates itself and must not hand tokens to the model."
+        }
       }
     },
     "/api/auth/saml/acs": {
       "post": {
-        "operationId": "saml_acs_api_auth_saml_acs_post",
+        "operationId": "saml_acs",
         "responses": {
           "200": {
             "content": {
@@ -2576,12 +2591,15 @@
         "summary": "Saml Acs",
         "tags": [
           "auth"
-        ]
+        ],
+        "x-azuregos-mcp": {
+          "exclude": "Browser redirect step of federated login."
+        }
       }
     },
     "/api/auth/saml/login": {
       "get": {
-        "operationId": "saml_login_api_auth_saml_login_get",
+        "operationId": "saml_login",
         "responses": {
           "200": {
             "content": {
@@ -2595,13 +2613,16 @@
         "summary": "Saml Login",
         "tags": [
           "auth"
-        ]
+        ],
+        "x-azuregos-mcp": {
+          "exclude": "Browser redirect step of federated login."
+        }
       }
     },
     "/api/build-info": {
       "get": {
         "description": "Current build/runtime info. Requires authentication.",
-        "operationId": "build_info_api_build_info_get",
+        "operationId": "build_info",
         "responses": {
           "200": {
             "content": {
@@ -2628,7 +2649,7 @@
     "/api/categories": {
       "get": {
         "description": "List categories with a count of their active portals.",
-        "operationId": "list_categories_api_categories_get",
+        "operationId": "list_categories",
         "responses": {
           "200": {
             "content": {
@@ -2637,7 +2658,7 @@
                   "items": {
                     "$ref": "#/components/schemas/CategoryWithCount"
                   },
-                  "title": "Response List Categories Api Categories Get",
+                  "title": "Response List Categories",
                   "type": "array"
                 }
               }
@@ -2651,7 +2672,7 @@
         ]
       },
       "post": {
-        "operationId": "create_category_api_categories_post",
+        "operationId": "create_category",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2697,7 +2718,7 @@
     },
     "/api/categories/{category_id}": {
       "delete": {
-        "operationId": "delete_category_api_categories__category_id__delete",
+        "operationId": "delete_category",
         "parameters": [
           {
             "in": "path",
@@ -2736,7 +2757,7 @@
         ]
       },
       "patch": {
-        "operationId": "update_category_api_categories__category_id__patch",
+        "operationId": "update_category",
         "parameters": [
           {
             "in": "path",
@@ -2795,13 +2816,13 @@
     "/api/health": {
       "get": {
         "description": "Liveness \u2014 always cheap, no dependencies.",
-        "operationId": "health_api_health_get",
+        "operationId": "health",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Health Api Health Get",
+                  "title": "Response Health",
                   "type": "object"
                 }
               }
@@ -2818,13 +2839,13 @@
     "/api/health/ready": {
       "get": {
         "description": "Readiness \u2014 checks the DB and reports ADO configuration.",
-        "operationId": "readiness_api_health_ready_get",
+        "operationId": "readiness",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Readiness Api Health Ready Get",
+                  "title": "Response Readiness",
                   "type": "object"
                 }
               }
@@ -2841,7 +2862,7 @@
     "/api/portals": {
       "get": {
         "description": "Every portal for admins; a portal admin's assigned portals only.",
-        "operationId": "list_all_portals_api_portals_get",
+        "operationId": "list_all_portals",
         "responses": {
           "200": {
             "content": {
@@ -2850,7 +2871,7 @@
                   "items": {
                     "$ref": "#/components/schemas/PortalRead"
                   },
-                  "title": "Response List All Portals Api Portals Get",
+                  "title": "Response List All Portals",
                   "type": "array"
                 }
               }
@@ -2869,7 +2890,7 @@
         ]
       },
       "post": {
-        "operationId": "create_portal_api_portals_post",
+        "operationId": "create_portal",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2916,7 +2937,7 @@
     "/api/portals/catalog": {
       "get": {
         "description": "Active portals grouped by category, with uncategorized under 'General'.\n\nEvery real category is included even when it has no active portals (the\nfront page greys these out); 'General' appears only when it has portals.",
-        "operationId": "catalog_api_portals_catalog_get",
+        "operationId": "portal_catalog",
         "responses": {
           "200": {
             "content": {
@@ -2925,7 +2946,7 @@
                   "items": {
                     "type": "object"
                   },
-                  "title": "Response Catalog Api Portals Catalog Get",
+                  "title": "Response Portal Catalog",
                   "type": "array"
                 }
               }
@@ -2938,7 +2959,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Catalog",
+        "summary": "Portal Catalog",
         "tags": [
           "portals"
         ]
@@ -2946,7 +2967,7 @@
     },
     "/api/portals/{portal_id}": {
       "delete": {
-        "operationId": "delete_portal_api_portals__portal_id__delete",
+        "operationId": "delete_portal",
         "parameters": [
           {
             "in": "path",
@@ -2985,7 +3006,7 @@
         ]
       },
       "patch": {
-        "operationId": "update_portal_api_portals__portal_id__patch",
+        "operationId": "update_portal",
         "parameters": [
           {
             "in": "path",
@@ -3043,7 +3064,7 @@
     },
     "/api/portals/{slug}": {
       "get": {
-        "operationId": "get_portal_api_portals__slug__get",
+        "operationId": "get_portal",
         "parameters": [
           {
             "in": "path",
@@ -3091,7 +3112,7 @@
     "/api/sso/oidc": {
       "delete": {
         "description": "Remove the saved OIDC settings, reverting to the OIDC_* env vars.",
-        "operationId": "delete_oidc_api_sso_oidc_delete",
+        "operationId": "delete_oidc_settings",
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -3102,14 +3123,14 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Delete Oidc",
+        "summary": "Delete Oidc Settings",
         "tags": [
           "sso"
         ]
       },
       "get": {
         "description": "Which OIDC settings are in effect, plus the saved and env values (no secrets).",
-        "operationId": "get_oidc_api_sso_oidc_get",
+        "operationId": "get_oidc_settings",
         "responses": {
           "200": {
             "content": {
@@ -3127,14 +3148,14 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Get Oidc",
+        "summary": "Get Oidc Settings",
         "tags": [
           "sso"
         ]
       },
       "put": {
         "description": "Save OIDC settings; they then take precedence over the OIDC_* env vars.",
-        "operationId": "save_oidc_api_sso_oidc_put",
+        "operationId": "save_oidc_settings",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3172,7 +3193,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Save Oidc",
+        "summary": "Save Oidc Settings",
         "tags": [
           "sso"
         ]
@@ -3181,7 +3202,7 @@
     "/api/sso/oidc/test": {
       "post": {
         "description": "Fetch the discovery document without saving anything.\n\nThis checks the IdP is reachable and the URL is an OpenID configuration;\nthe client ID and secret can only be proven by a real sign-in.",
-        "operationId": "test_oidc_api_sso_oidc_test_post",
+        "operationId": "test_oidc_settings",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3219,7 +3240,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Test Oidc",
+        "summary": "Test Oidc Settings",
         "tags": [
           "sso"
         ]
@@ -3228,7 +3249,7 @@
     "/api/sso/saml": {
       "delete": {
         "description": "Remove the saved SAML settings, reverting to the SAML_* env vars.",
-        "operationId": "delete_saml_api_sso_saml_delete",
+        "operationId": "delete_saml_settings",
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -3239,14 +3260,14 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Delete Saml",
+        "summary": "Delete Saml Settings",
         "tags": [
           "sso"
         ]
       },
       "get": {
         "description": "Which SAML settings are in effect, plus the saved and env values (no key).",
-        "operationId": "get_saml_api_sso_saml_get",
+        "operationId": "get_saml_settings",
         "responses": {
           "200": {
             "content": {
@@ -3264,14 +3285,14 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Get Saml",
+        "summary": "Get Saml Settings",
         "tags": [
           "sso"
         ]
       },
       "put": {
         "description": "Save SAML settings; they then take precedence over the SAML_* env vars.",
-        "operationId": "save_saml_api_sso_saml_put",
+        "operationId": "save_saml_settings",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3309,7 +3330,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Save Saml",
+        "summary": "Save Saml Settings",
         "tags": [
           "sso"
         ]
@@ -3318,7 +3339,7 @@
     "/api/sso/saml/test": {
       "post": {
         "description": "Read the IdP metadata (and check the SP key pair) without saving anything.",
-        "operationId": "test_saml_api_sso_saml_test_post",
+        "operationId": "test_saml_settings",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3356,7 +3377,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "Test Saml",
+        "summary": "Test Saml Settings",
         "tags": [
           "sso"
         ]
@@ -3365,7 +3386,7 @@
     "/api/tickets": {
       "get": {
         "description": "List the caller's tickets. With ?all_tickets=true admins get every ticket\nand portal admins every ticket in their portals.",
-        "operationId": "list_my_tickets_api_tickets_get",
+        "operationId": "list_my_tickets",
         "parameters": [
           {
             "in": "query",
@@ -3386,7 +3407,7 @@
                   "items": {
                     "$ref": "#/components/schemas/TicketListItem"
                   },
-                  "title": "Response List My Tickets Api Tickets Get",
+                  "title": "Response List My Tickets",
                   "type": "array"
                 }
               }
@@ -3415,7 +3436,7 @@
         ]
       },
       "post": {
-        "operationId": "create_ticket_api_tickets_post",
+        "operationId": "create_ticket",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3461,7 +3482,7 @@
     },
     "/api/tickets/{ticket_id}": {
       "get": {
-        "operationId": "get_ticket_api_tickets__ticket_id__get",
+        "operationId": "get_ticket",
         "parameters": [
           {
             "in": "path",
@@ -3520,7 +3541,7 @@
     "/api/tickets/{ticket_id}/comments": {
       "get": {
         "description": "The ADO discussion for a ticket. Empty until it's been synced to ADO.",
-        "operationId": "list_ticket_comments_api_tickets__ticket_id__comments_get",
+        "operationId": "list_ticket_comments",
         "parameters": [
           {
             "in": "path",
@@ -3541,7 +3562,7 @@
                   "items": {
                     "$ref": "#/components/schemas/TicketComment"
                   },
-                  "title": "Response List Ticket Comments Api Tickets  Ticket Id  Comments Get",
+                  "title": "Response List Ticket Comments",
                   "type": "array"
                 }
               }
@@ -3571,7 +3592,7 @@
       },
       "post": {
         "description": "Post a reply to a ticket's discussion.\n\nComments are created in ADO under the service account, so we prepend an\nattribution line naming the real author.",
-        "operationId": "add_ticket_comment_api_tickets__ticket_id__comments_post",
+        "operationId": "add_ticket_comment",
         "parameters": [
           {
             "in": "path",
@@ -3630,7 +3651,7 @@
     "/api/tickets/{ticket_id}/retry": {
       "post": {
         "description": "Force an immediate re-sync of a pending/failed ticket (admin, or an\nadmin of the ticket's portal).",
-        "operationId": "retry_ticket_api_tickets__ticket_id__retry_post",
+        "operationId": "retry_ticket",
         "parameters": [
           {
             "in": "path",
@@ -3678,7 +3699,7 @@
     },
     "/api/users": {
       "get": {
-        "operationId": "list_users_api_users_get",
+        "operationId": "list_users",
         "responses": {
           "200": {
             "content": {
@@ -3687,7 +3708,7 @@
                   "items": {
                     "$ref": "#/components/schemas/UserRead"
                   },
-                  "title": "Response List Users Api Users Get",
+                  "title": "Response List Users",
                   "type": "array"
                 }
               }
@@ -3706,7 +3727,7 @@
         ]
       },
       "post": {
-        "operationId": "create_user_api_users_post",
+        "operationId": "create_user",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3752,7 +3773,7 @@
     },
     "/api/users/{user_id}": {
       "delete": {
-        "operationId": "delete_user_api_users__user_id__delete",
+        "operationId": "delete_user",
         "parameters": [
           {
             "in": "path",
@@ -3791,7 +3812,7 @@
         ]
       },
       "patch": {
-        "operationId": "update_user_api_users__user_id__patch",
+        "operationId": "update_user",
         "parameters": [
           {
             "in": "path",

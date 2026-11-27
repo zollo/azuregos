@@ -1,6 +1,6 @@
 # How the Azuregos API's operations group into Ansible modules.
 #
-# generate.py reads this file and ansible/openapi.json and writes every module
+# generate.py reads this file and docs/openapi.json and writes every module
 # in ansible_collections/zollo/azuregos/plugins/modules/. The OpenAPI spec is
 # the source of each module's options: names, types, choices, required
 # suboptions, length/pattern/format constraints, defaults and descriptions all

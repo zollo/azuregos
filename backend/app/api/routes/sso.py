@@ -134,13 +134,13 @@ def _require_oidc_fields(cfg: ResolvedOidc) -> None:
 
 
 @router.get("/oidc", response_model=OidcSettingsStatus)
-async def get_oidc(db: AsyncSession = Depends(get_db)) -> OidcSettingsStatus:
+async def get_oidc_settings(db: AsyncSession = Depends(get_db)) -> OidcSettingsStatus:
     """Which OIDC settings are in effect, plus the saved and env values (no secrets)."""
     return await _oidc_status(db)
 
 
 @router.post("/oidc/test", response_model=OidcTestResult)
-async def test_oidc(payload: OidcSettingsWrite) -> OidcTestResult:
+async def test_oidc_settings(payload: OidcSettingsWrite) -> OidcTestResult:
     """Fetch the discovery document without saving anything.
 
     This checks the IdP is reachable and the URL is an OpenID configuration;
@@ -158,7 +158,7 @@ async def test_oidc(payload: OidcSettingsWrite) -> OidcTestResult:
 
 
 @router.put("/oidc", response_model=OidcSettingsStatus)
-async def save_oidc(
+async def save_oidc_settings(
     payload: OidcSettingsWrite,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_super_admin),
@@ -196,7 +196,7 @@ async def save_oidc(
 
 
 @router.delete("/oidc", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_oidc(db: AsyncSession = Depends(get_db)):
+async def delete_oidc_settings(db: AsyncSession = Depends(get_db)):
     """Remove the saved OIDC settings, reverting to the OIDC_* env vars."""
     row = await get_stored_oidc(db)
     if row is not None:
@@ -306,13 +306,13 @@ def check_sp_keypair(cert: str, key: str) -> str | None:
 
 
 @router.get("/saml", response_model=SamlSettingsStatus)
-async def get_saml(db: AsyncSession = Depends(get_db)) -> SamlSettingsStatus:
+async def get_saml_settings(db: AsyncSession = Depends(get_db)) -> SamlSettingsStatus:
     """Which SAML settings are in effect, plus the saved and env values (no key)."""
     return await _saml_status(db)
 
 
 @router.post("/saml/test", response_model=SamlTestResult)
-async def test_saml(
+async def test_saml_settings(
     payload: SamlSettingsWrite, db: AsyncSession = Depends(get_db)
 ) -> SamlTestResult:
     """Read the IdP metadata (and check the SP key pair) without saving anything."""
@@ -330,7 +330,7 @@ async def test_saml(
 
 
 @router.put("/saml", response_model=SamlSettingsStatus)
-async def save_saml(
+async def save_saml_settings(
     payload: SamlSettingsWrite,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_super_admin),
@@ -378,7 +378,7 @@ async def save_saml(
 
 
 @router.delete("/saml", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_saml(db: AsyncSession = Depends(get_db)):
+async def delete_saml_settings(db: AsyncSession = Depends(get_db)):
     """Remove the saved SAML settings, reverting to the SAML_* env vars."""
     row = await get_stored_saml(db)
     if row is not None:

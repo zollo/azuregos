@@ -6,7 +6,6 @@ For using the collection, see its
 
 ```
 ansible/
-  openapi.json                 snapshot of the API's OpenAPI spec (generated, committed)
   generator/
     generate.py                spec + resources.yml -> modules, role task files, docs
     resources.yml              which API operations make up which module (hand-written)

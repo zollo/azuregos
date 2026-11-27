@@ -44,7 +44,7 @@ pip install ./backend ansible-core
 python ansible/generator/generate.py --export-spec
 ```
 
-and commit the result (`ansible/openapi.json` and the regenerated modules).
+and commit the result (`docs/openapi.json` and the regenerated modules).
 CI fails when they're stale, and also when a new endpoint is neither wrapped by
 a module nor listed under `ignore` in `ansible/generator/resources.yml`. Write
 option descriptions as `Field(description=...)` in the schemas: they become the

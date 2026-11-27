@@ -192,7 +192,22 @@ gh attestation verify "oci://$IMAGE" --repo zollo/azuregos
 ## API
 
 Everything the web app does goes through a REST API under `/api`. Interactive
-docs are served at `/docs`, and the OpenAPI spec at `/openapi.json`.
+docs are served at `/docs`, and the OpenAPI spec at `/openapi.json` (a copy of
+the current one is committed at [docs/openapi.json](docs/openapi.json)).
+
+### MCP server
+
+[`mcp-server/`](mcp-server/) is an MCP server that exposes the same API to AI
+assistants (Claude Code, Claude Desktop and other MCP clients), one tool per
+endpoint, generated from the spec so it never falls behind:
+
+```bash
+claude mcp add azuregos -e AZUREGOS_URL=https://azuregos.example.com \
+  -e AZUREGOS_EMAIL=assistant@example.com -e AZUREGOS_PASSWORD=... \
+  -- uvx --from "git+https://github.com/zollo/azuregos#subdirectory=mcp-server" azuregos-mcp
+```
+
+See [mcp-server/README.md](mcp-server/README.md) for setup and the tool list.
 
 ## Ansible
 

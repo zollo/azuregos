@@ -131,7 +131,7 @@ async def _guard_org_switch(db: AsyncSession, new_org_url: str) -> None:
     response_model=AdoConnectionStatus,
     dependencies=[Depends(get_current_super_admin)],
 )
-async def get_connection(db: AsyncSession = Depends(get_db)) -> AdoConnectionStatus:
+async def get_ado_connection(db: AsyncSession = Depends(get_db)) -> AdoConnectionStatus:
     """Which connection is in effect, plus the saved and env values (no PATs)."""
     return await _connection_status(db)
 
@@ -141,7 +141,7 @@ async def get_connection(db: AsyncSession = Depends(get_db)) -> AdoConnectionSta
     response_model=AdoConnectionTestResult,
     dependencies=[Depends(get_current_super_admin)],
 )
-async def test_connection(
+async def test_ado_connection(
     payload: AdoConnectionWrite, db: AsyncSession = Depends(get_db)
 ) -> AdoConnectionTestResult:
     """Check connection values without saving. A blank PAT uses the saved one."""
@@ -155,7 +155,7 @@ async def test_connection(
 
 
 @router.put("/connection", response_model=AdoConnectionStatus)
-async def save_connection(
+async def save_ado_connection(
     payload: AdoConnectionWrite,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_super_admin),
@@ -195,7 +195,7 @@ async def save_connection(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(get_current_super_admin)],
 )
-async def delete_connection(db: AsyncSession = Depends(get_db)):
+async def delete_ado_connection(db: AsyncSession = Depends(get_db)):
     """Remove the saved connection, reverting to the ADO_* env vars."""
     row = await get_stored_connection(db)
     if row is not None:
@@ -208,7 +208,7 @@ async def delete_connection(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/projects")
-async def list_projects(db: AsyncSession = Depends(get_db)) -> dict:
+async def list_ado_projects(db: AsyncSession = Depends(get_db)) -> dict:
     """Projects in the configured org. Never errors hard so the editor can fall
     back to a free-text field: returns ``configured`` and an optional ``error``.
     """
@@ -228,7 +228,7 @@ async def list_projects(db: AsyncSession = Depends(get_db)) -> dict:
 
 
 @router.get("/work-item-types")
-async def list_work_item_types(
+async def list_ado_work_item_types(
     project: str | None = None, db: AsyncSession = Depends(get_db)
 ) -> dict:
     """Work-item types for ``project`` (or the server default if omitted)."""
@@ -253,7 +253,7 @@ async def list_work_item_types(
 
 
 @router.get("/area-paths")
-async def list_area_paths(
+async def list_ado_area_paths(
     project: str | None = None, db: AsyncSession = Depends(get_db)
 ) -> dict:
     """Valid area paths for ``project`` (or the server default if omitted)."""

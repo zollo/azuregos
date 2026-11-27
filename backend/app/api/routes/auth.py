@@ -6,6 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.api.openapi import mcp_exclude
 from app.core.auth_providers import oidc, saml
 from app.core.security import create_access_token
 from app.db import get_db
@@ -23,13 +24,19 @@ from app.services.sso_settings import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+_CREDENTIAL_EXCHANGE = mcp_exclude(
+    "Returns a bearer token; the MCP server authenticates itself and must not "
+    "hand tokens to the model."
+)
+_BROWSER_FLOW = mcp_exclude("Browser redirect step of federated login.")
+
 
 def _token_for(user: User) -> Token:
     access = create_access_token(user.id, extra={"role": user.role.value})
     return Token(access_token=access, user=UserRead.model_validate(user))
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, openapi_extra=_CREDENTIAL_EXCHANGE)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token:
     user = await user_service.authenticate(db, payload.email, payload.password)
     if user is None:
@@ -39,7 +46,12 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> To
     return _token_for(user)
 
 
-@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=Token,
+    status_code=status.HTTP_201_CREATED,
+    openapi_extra=_CREDENTIAL_EXCHANGE,
+)
 async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)) -> Token:
     """Self-service end-user registration (creates a local end_user account)."""
     if await user_service.get_by_email(db, payload.email):
@@ -89,7 +101,7 @@ async def _active_oidc(db: AsyncSession) -> ResolvedOidc:
     return cfg
 
 
-@router.get("/oidc/login")
+@router.get("/oidc/login", openapi_extra=_BROWSER_FLOW)
 async def oidc_login(db: AsyncSession = Depends(get_db)) -> RedirectResponse:
     cfg = await _active_oidc(db)
     try:
@@ -99,7 +111,7 @@ async def oidc_login(db: AsyncSession = Depends(get_db)) -> RedirectResponse:
     return RedirectResponse(url)
 
 
-@router.get("/oidc/callback")
+@router.get("/oidc/callback", openapi_extra=_BROWSER_FLOW)
 async def oidc_callback(
     code: str, state: str, db: AsyncSession = Depends(get_db)
 ) -> RedirectResponse:
@@ -145,7 +157,7 @@ async def _active_saml(db: AsyncSession) -> ResolvedSaml:
     return cfg
 
 
-@router.get("/saml/login")
+@router.get("/saml/login", openapi_extra=_BROWSER_FLOW)
 async def saml_login(request: Request, db: AsyncSession = Depends(get_db)) -> RedirectResponse:
     cfg = await _active_saml(db)
     try:
@@ -155,7 +167,7 @@ async def saml_login(request: Request, db: AsyncSession = Depends(get_db)) -> Re
     return RedirectResponse(url)
 
 
-@router.post("/saml/acs")
+@router.post("/saml/acs", openapi_extra=_BROWSER_FLOW)
 async def saml_acs(request: Request, db: AsyncSession = Depends(get_db)) -> RedirectResponse:
     cfg = await _active_saml(db)
     try:
